@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ "Editar" if usuario else "Novo" }} Usuário</h2>
+<form method="POST">
+    {{ form.hidden_tag() }}
+    <div class="mb-3">
+        {{ form.nome.label }} {{ form.nome(class="form-control") }}
+    </div>
+    <div class="mb-3">
+        {{ form.sso.label }} {{ form.sso(class="form-control") }}
+    </div>
+    <div class="mb-3">
+        {{ form.email.label }} {{ form.email(class="form-control") }}
+    </div>
+    <div class="mb-3">
+        {{ form.senha.label }} {{ form.senha(class="form-control") }}
+        <small class="text-muted">{{ "Deixe em branco para não alterar." if usuario else "" }}</small>
+    </div>
+    <div class="mb-3">
+        {{ form.perfil.label }} {{ form.perfil(class="form-select") }}
+    </div>
+    <button type="submit" class="btn btn-primary">Salvar</button>
+    <a href="{{ url_for('usuarios.listar') }}" class="btn btn-secondary">Cancelar</a>
+</form>
+{% endblock %}

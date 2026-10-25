@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Login</h2>
+<form method="POST">
+    {{ form.hidden_tag() }}
+    <div class="mb-3">
+        {{ form.sso.label }} {{ form.sso(class="form-control") }}
+    </div>
+    <div class="mb-3">
+        {{ form.senha.label }} {{ form.senha(class="form-control") }}
+    </div>
+    <button type="submit" class="btn btn-primary">Entrar</button>
+</form>
+{% endblock %}

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Sistema NR - Gerador de QR Code</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" href="{{ url_for('home') }}">Sistema NR</a>
+        <div>
+            <a class="btn btn-outline-light btn-sm" href="{{ url_for('colaboradores.listar') }}">Colaboradores</a>
+            <a class="btn btn-outline-light btn-sm" href="{{ url_for('catalogo_nr.listar') }}">Catálogo NR</a>
+            <a class="btn btn-outline-light btn-sm" href="{{ url_for('cursos.listar') }}">Cursos Realizados</a>
+            <a class="btn btn-outline-light btn-sm" href="{{ url_for('cursos.gerar_qrcodes') }}">Gerar QR Codes</a>
+            {% if current_user.is_authenticated and current_user.perfil == 'admin' %}
+                <a class="btn btn-outline-light btn-sm" href="{{ url_for('usuarios.listar') }}">Usuários</a>
+            {% endif %}
+            <a class="btn btn-outline-warning btn-sm" href="{{ url_for('auth.logout') }}">Sair</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+</div>
+</body>
+</html>

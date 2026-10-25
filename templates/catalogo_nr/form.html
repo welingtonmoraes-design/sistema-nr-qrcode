@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ "Editar" if curso else "Novo" }} Curso NR</h2>
+<form method="POST">
+    {{ form.hidden_tag() }}
+    <div class="mb-3">
+        {{ form.nome_curso.label }} {{ form.nome_curso(class="form-control") }}
+    </div>
+    <div class="mb-3">
+        {{ form.validade_meses.label }} {{ form.validade_meses(class="form-control") }}
+    </div>
+    <div class="mb-3">
+        {{ form.descricao.label }} {{ form.descricao(class="form-control") }}
+    </div>
+    <button type="submit" class="btn btn-primary">Salvar</button>
+    <a href="{{ url_for('catalogo_nr.listar') }}" class="btn btn-secondary">Cancelar</a>
+</form>
+{% endblock %}

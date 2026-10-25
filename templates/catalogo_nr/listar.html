@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Catálogo de Cursos NR</h2>
+    <a href="{{ url_for('catalogo_nr.novo') }}" class="btn btn-primary">+ Novo Curso</a>
+</div>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Curso</th>
+            <th>Validade (meses)</th>
+            <th>Descrição</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for c in cursos %}
+        <tr>
+            <td>{{ c.nome_curso }}</td>
+            <td>{{ c.validade_meses }}</td>
+            <td>{{ c.descricao }}</td>
+            <td>
+                <a href="{{ url_for('catalogo_nr.editar', id=c.id) }}" class="btn btn-sm btn-warning">Editar</a>
+                <form method="POST" action="{{ url_for('catalogo_nr.excluir', id=c.id) }}" style="display:inline;" onsubmit="return confirm('Confirma exclusão?');">
+                    <button type="submit" class="btn btn-sm btn-danger">Excluir</button>
+                </form>
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

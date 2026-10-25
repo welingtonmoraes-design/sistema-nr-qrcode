@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ "Editar" if registro else "Novo" }} Curso Realizado</h2>
+<form method="POST">
+    {{ form.hidden_tag() }}
+    <div class="mb-3">
+        {{ form.colaborador_id.label }} {{ form.colaborador_id(class="form-select") }}
+    </div>
+    <div class="mb-3">
+        {{ form.catalogo_nr_id.label }} {{ form.catalogo_nr_id(class="form-select") }}
+    </div>
+    <div class="mb-3">
+        {{ form.data_realizado.label }} {{ form.data_realizado(class="form-control", type="date") }}
+    </div>
+    <button type="submit" class="btn btn-primary">Salvar</button>
+    <a href="{{ url_for('cursos.listar') }}" class="btn btn-secondary">Cancelar</a>
+</form>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Cursos Realizados</h2>
+    <a href="{{ url_for('cursos.novo') }}" class="btn btn-primary">+ Novo Registro</a>
+</div>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Colaborador</th>
+            <th>Curso</th>
+            <th>Realizado em</th>
+            <th>Vencimento</th>
+            <th>Status</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for item in dados %}
+        <tr class="{{ 'table-danger' if item.status == 'VENCIDO' else ('table-warning' if item.status == 'A_VENCER' else 'table-success') }}">
+            <td>{{ item.registro.colaborador.nome }}</td>
+            <td>{{ item.registro.catalogo.nome_curso }}</td>
+            <td>{{ item.registro.data_realizado.strftime('%d/%m/%Y') }}</td>
+            <td>{{ item.registro.data_vencimento.strftime('%d/%m/%Y') }}</td>
+            <td>{{ item.status }} {% if item.dias_restantes is not none %}({{ item.dias_restantes }} dias){% endif %}</td>
+            <td>
+                <a href="{{ url_for('cursos.editar', id=item.registro.id) }}" class="btn btn-sm btn-warning">Editar</a>
+                <form method="POST" action="{{ url_for('cursos.excluir', id=item.registro.id) }}" style="display:inline;" onsubmit="return confirm('Confirma exclusão?');">
+                    <button type="submit" class="btn btn-sm btn-danger">Excluir</button>
+                </form>
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

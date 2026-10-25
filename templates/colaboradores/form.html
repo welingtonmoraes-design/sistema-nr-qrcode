@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ "Editar" if colaborador else "Novo" }} Colaborador</h2>
+<form method="POST">
+    {{ form.hidden_tag() }}
+    <div class="mb-3">
+        {{ form.nome.label }} {{ form.nome(class="form-control") }}
+    </div>
+    <div class="mb-3">
+        {{ form.cpf.label }} {{ form.cpf(class="form-control") }}
+    </div>
+    <div class="mb-3">
+        {{ form.matricula.label }} {{ form.matricula(class="form-control") }}
+    </div>
+    <div class="form-check mb-3">
+        {{ form.ativo(class="form-check-input") }} {{ form.ativo.label }}
+    </div>
+    <button type="submit" class="btn btn-primary">Salvar</button>
+    <a href="{{ url_for('colaboradores.listar') }}" class="btn btn-secondary">Cancelar</a>
+</form>
+{% endblock %}

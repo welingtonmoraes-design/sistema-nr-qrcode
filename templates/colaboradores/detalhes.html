@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ colaborador.nome }}</h2>
+<p><strong>CPF:</strong> {{ colaborador.cpf }} | <strong>Matrícula:</strong> {{ colaborador.matricula }}</p>
+
+<h4 class="mt-4">Cursos NR</h4>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Curso</th>
+            <th>Realizado em</th>
+            <th>Vencimento</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for item in cursos_info %}
+        <tr class="{{ 'table-danger' if item.status == 'VENCIDO' else ('table-warning' if item.status == 'A_VENCER' else 'table-success') }}">
+            <td>{{ item.curso.catalogo.nome_curso }}</td>
+            <td>{{ item.curso.data_realizado.strftime('%d/%m/%Y') }}</td>
+            <td>{{ item.curso.data_vencimento.strftime('%d/%m/%Y') }}</td>
+            <td>{{ item.status }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<a href="{{ url_for('colaboradores.listar') }}" class="btn btn-secondary">Voltar</a>
+{% endblock %}
