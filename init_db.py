@@ -1,11 +1,12 @@
 """
 Script para inicializar o banco de dados com dados de exemplo.
-Execute: python init_db.py
+Execute localmente: python init_db.py
+No Render: use o Shell do painel e rode o mesmo comando.
 """
 from app import app
 from models import db, Colaborador, Usuario, CatalogoNR, ColaboradorCurso
 from werkzeug.security import generate_password_hash
-from datetime import date
+from datetime import date, timedelta
 
 
 def criar_banco():
@@ -13,7 +14,6 @@ def criar_banco():
         db.drop_all()
         db.create_all()
 
-        # --- Usuários do sistema ---
         admin = Usuario(
             nome="Administrador Sistema",
             sso="admin001",
@@ -31,23 +31,21 @@ def criar_banco():
         db.session.add_all([admin, usuario_comum])
         db.session.commit()
 
-        # --- Catálogo de NRs (validade padrão) ---
         nr35 = CatalogoNR(nome_curso="NR-35", validade_meses=24,
                           descricao="Trabalho em Altura")
         nr10 = CatalogoNR(nome_curso="NR-10", validade_meses=24,
-                          descricao="Segurança em Instalações Elétricas")
+                          descricao="Seguranca em Instalacoes Eletricas")
         nr33 = CatalogoNR(nome_curso="NR-33", validade_meses=12,
-                          descricao="Espaços Confinados")
+                          descricao="Espacos Confinados")
         nr12 = CatalogoNR(nome_curso="NR-12", validade_meses=12,
-                          descricao="Segurança em Máquinas e Equipamentos")
+                          descricao="Seguranca em Maquinas e Equipamentos")
         nr06 = CatalogoNR(nome_curso="NR-06", validade_meses=12,
-                          descricao="Equipamento de Proteção Individual")
+                          descricao="Equipamento de Protecao Individual")
         db.session.add_all([nr35, nr10, nr33, nr12, nr06])
-        db.session.commit()  # ✅ commit aqui garante IDs gerados antes de usar
+        db.session.commit()
 
-        # --- Colaboradores ---
         colaboradores = [
-            Colaborador(nome="João Pereira", cpf="111.222.333-44",
+            Colaborador(nome="Joao Pereira", cpf="111.222.333-44",
                         matricula="0001", ativo=True),
             Colaborador(nome="Carlos Silva", cpf="222.333.444-55",
                         matricula="0002", ativo=True),
@@ -57,18 +55,17 @@ def criar_banco():
                         matricula="0004", ativo=True),
         ]
         db.session.add_all(colaboradores)
-        db.session.commit()  # ✅ commit aqui garante IDs gerados antes de usar
+        db.session.commit()
 
-        # --- Cursos realizados (vencidos / a vencer / válidos) ---
-        # Cada tupla: (colaborador, catalogo, data_realizado)
+        # Datas relativas a hoje, garantindo cenario sempre realista
+        hoje = date.today()
+
         dados_cursos = [
-            # João - NR-35 próximo a vencer
-            (colaboradores[0], nr35, date(2023, 10, 15)),
-            # Carlos - NR-10 vencido
-            (colaboradores[1], nr10, date(2022, 1, 10)),
-            (colaboradores[2], nr33, date(2024, 12, 1)),   # Ana - NR-33 válido
-            # Pedro - NR-06 válido
-            (colaboradores[3], nr06, date(2025, 3, 1)),
+            (colaboradores[0], nr35, hoje -
+             timedelta(days=700)),   # proximo a vencer
+            (colaboradores[1], nr10, hoje - timedelta(days=800)),   # vencido
+            (colaboradores[2], nr33, hoje - timedelta(days=30)),    # valido
+            (colaboradores[3], nr06, hoje - timedelta(days=10)),    # valido
         ]
 
         cursos_realizados = []
@@ -78,18 +75,15 @@ def criar_banco():
                 catalogo_nr_id=catalogo.id,
                 data_realizado=data_realizado
             )
-            # ✅ Correção: passamos o objeto `catalogo` já carregado em memória,
-            # evitando o AttributeError causado pelo lazy-load do relationship
-            # em objetos que ainda não foram persistidos na sessão.
             registro.calcular_vencimento(catalogo)
             cursos_realizados.append(registro)
 
         db.session.add_all(cursos_realizados)
         db.session.commit()
 
-        print("✅ Banco de dados criado com sucesso!")
+        print("Banco de dados criado com sucesso!")
         print(f"   - {len(colaboradores)} colaboradores cadastrados")
-        print(f"   - 5 cursos NR no catálogo")
+        print("   - 5 cursos NR no catalogo")
         print(f"   - {len(cursos_realizados)} registros de cursos realizados")
         print("\nStatus dos cursos cadastrados:")
         for registro in cursos_realizados:
@@ -97,8 +91,8 @@ def criar_banco():
             print(f"   - {registro.colaborador.nome} | {registro.catalogo.nome_curso} "
                   f"| Vence em: {registro.data_vencimento} | Status: {status} ({dias} dias)")
 
-        print("\nUsuários de acesso:")
-        print("   admin / admin123 (perfil: admin)")
+        print("\nUsuarios de acesso:")
+        print("   admin001 / admin123 (perfil: admin)")
         print("   msouza / 123456 (perfil: comum)")
 
 
