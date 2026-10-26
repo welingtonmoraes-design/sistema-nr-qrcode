@@ -85,6 +85,77 @@ def verificar_colaborador(cpf):
 with app.app_context():
     db.create_all()
 
+@app.route("/init-db-secreto-xyz123")
+def inicializar_banco_remoto():
+    from werkzeug.security import generate_password_hash
+    from datetime import date, timedelta
+    from models import CatalogoNR, Colaborador, ColaboradorCurso
+
+    with app.app_context():
+        db.drop_all()
+        db.create_all()
+
+        admin = Usuario(
+            nome="Administrador Sistema",
+            sso="admin001",
+            email="admin@empresa.com",
+            senha_hash=generate_password_hash("admin123"),
+            perfil="admin"
+        )
+        usuario_comum = Usuario(
+            nome="Maria Souza",
+            sso="msouza",
+            email="maria.souza@empresa.com",
+            senha_hash=generate_password_hash("123456"),
+            perfil="comum"
+        )
+        db.session.add_all([admin, usuario_comum])
+        db.session.commit()
+
+        nr35 = CatalogoNR(nome_curso="NR-35", validade_meses=24, descricao="Trabalho em Altura")
+        nr10 = CatalogoNR(nome_curso="NR-10", validade_meses=24, descricao="Seguranca em Instalacoes Eletricas")
+        nr33 = CatalogoNR(nome_curso="NR-33", validade_meses=12, descricao="Espacos Confinados")
+        nr06 = CatalogoNR(nome_curso="NR-06", validade_meses=None, descricao="Curso sem validade - exemplo")
+        db.session.add_all([nr35, nr10, nr33, nr06])
+        db.session.commit()
+
+        colaboradores = [
+            Colaborador(nome="Joao Pereira", cpf="111.222.333-44", matricula="0001", ativo=True),
+            Colaborador(nome="Carlos Silva", cpf="222.333.444-55", matricula="0002", ativo=True),
+            Colaborador(nome="Ana Oliveira", cpf="333.444.555-66", matricula="0003", ativo=True),
+            Colaborador(nome="Pedro Santos", cpf="444.555.666-77", matricula="0004", ativo=True),
+        ]
+        db.session.add_all(colaboradores)
+        db.session.commit()
+
+        hoje = date.today()
+        dados_cursos = [
+            (colaboradores[0], nr35, hoje - timedelta(days=700)),
+            (colaboradores[1], nr10, hoje - timedelta(days=800)),
+            (colaboradores[2], nr33, hoje - timedelta(days=30)),
+            (colaboradores[3], nr06, hoje - timedelta(days=10)),
+        ]
+
+        cursos_realizados = []
+        for colaborador, catalogo, data_realizado in dados_cursos:
+            registro = ColaboradorCurso(
+                colaborador_id=colaborador.id,
+                catalogo_nr_id=catalogo.id,
+                data_realizado=data_realizado
+            )
+            registro.calcular_vencimento(catalogo)
+            cursos_realizados.append(registro)
+
+        db.session.add_all(cursos_realizados)
+        db.session.commit()
+
+    return (
+        "<h2>Banco de dados inicializado com sucesso!</h2>"
+        "<p>Usuarios: admin001/admin123 e msouza/123456</p>"
+        "<p>4 colaboradores, 4 cursos NR (um sem validade) cadastrados.</p>"
+        "<p><b>IMPORTANTE:</b> remova esta rota do codigo apos o uso.</p>"
+    )
+
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
