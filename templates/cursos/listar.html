@@ -18,12 +18,26 @@
     </thead>
     <tbody>
     {% for item in dados %}
-        <tr class="{{ 'table-danger' if item.status == 'VENCIDO' else ('table-warning' if item.status == 'A_VENCER' else 'table-success') }}">
+        <tr class="{{
+            'table-danger' if item.status == 'VENCIDO'
+            else ('table-warning' if item.status == 'A_VENCER'
+            else ('table-info' if item.status == 'SEM_VENCIMENTO'
+            else 'table-success'))
+        }}">
             <td>{{ item.registro.colaborador.nome }}</td>
             <td>{{ item.registro.catalogo.nome_curso }}</td>
             <td>{{ item.registro.data_realizado.strftime('%d/%m/%Y') }}</td>
-            <td>{{ item.registro.data_vencimento.strftime('%d/%m/%Y') }}</td>
-            <td>{{ item.status }} {% if item.dias_restantes is not none %}({{ item.dias_restantes }} dias){% endif %}</td>
+            <td>
+                {% if item.registro.data_vencimento %}
+                    {{ item.registro.data_vencimento.strftime('%d/%m/%Y') }}
+                {% else %}
+                    <span class="badge bg-info text-dark">Sem validade</span>
+                {% endif %}
+            </td>
+            <td>
+                {{ item.status.replace('_', ' ') }}
+                {% if item.dias_restantes is not none %}({{ item.dias_restantes }} dias){% endif %}
+            </td>
             <td>
                 <a href="{{ url_for('cursos.editar', id=item.registro.id) }}" class="btn btn-sm btn-warning">Editar</a>
                 <form method="POST" action="{{ url_for('cursos.excluir', id=item.registro.id) }}" style="display:inline;" onsubmit="return confirm('Confirma exclusão?');">
