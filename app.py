@@ -12,14 +12,17 @@ from services.validade_service import listar_cursos_criticos
 app = Flask(__name__)
 
 # --- Configuração do Banco de Dados ---
-# Em produção (Render), a variável DATABASE_URL é fornecida automaticamente
-# pelo serviço de PostgreSQL. Localmente, cai no SQLite como fallback.
 database_url = os.environ.get("DATABASE_URL", "sqlite:///sistema_nr.db")
 
-# Render fornece a URL com prefixo "postgres://", mas o SQLAlchemy 2.x
-# exige o prefixo "postgresql://" — fazemos a correção automática.
+# Corrige formato antigo do Render (postgres:// -> postgresql://)
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
+
+# Garante que o driver psycopg2 seja usado explicitamente,
+# evitando ambiguidade entre psycopg (v3) e psycopg2
+if database_url.startswith("postgresql://") and "+psycopg" not in database_url:
+    database_url = database_url.replace(
+        "postgresql://", "postgresql+psycopg2://", 1)
 
 app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_pre_ping": True}
@@ -78,7 +81,7 @@ def verificar_colaborador(cpf):
     )
 
 
-# --- Criação automática das tabelas no primeiro deploy ---
+# --- Criação automática das tabelas no deploy ---
 with app.app_context():
     db.create_all()
 
