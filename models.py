@@ -44,59 +44,73 @@ class CatalogoNR(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     nome_curso = db.Column(db.String(100), nullable=False)   # ex: NR-35
-    validade_meses = db.Column(db.Integer, nullable=False)
+    validade_meses = db.Column(db.Integer, nullable=True)    # None = sem validade
     descricao = db.Column(db.String(255))
 
     def __repr__(self):
         return f"<CatalogoNR {self.nome_curso}>"
+
+    @property
+    def tem_validade(self):
+        return self.validade_meses is not None
 
 
 class ColaboradorCurso(db.Model):
     __tablename__ = "colaborador_curso"
 
     id = db.Column(db.Integer, primary_key=True)
-    colaborador_id = db.Column(db.Integer, db.ForeignKey(
-        "colaboradores.id"), nullable=False)
-    catalogo_nr_id = db.Column(db.Integer, db.ForeignKey(
-        "catalogo_nr.id"), nullable=False)
+    colaborador_id = db.Column(db.Integer, db.ForeignKey("colaboradores.id"), nullable=False)
+    catalogo_nr_id = db.Column(db.Integer, db.ForeignKey("catalogo_nr.id"), nullable=False)
     data_realizado = db.Column(db.Date, nullable=False)
-    data_vencimento = db.Column(db.Date)
+    data_vencimento = db.Column(db.Date, nullable=True)  # None = sem vencimento
 
     catalogo = db.relationship("CatalogoNR", lazy="joined")
 
     def calcular_vencimento(self, catalogo=None):
         """
         Calcula a data de vencimento somando os meses de validade
-        à data de realização do curso.
+        a data de realizacao do curso.
 
-        Pode receber o objeto `catalogo` diretamente (útil quando o
-        registro ainda não está persistido na sessão do SQLAlchemy,
-        como em scripts de seed/importação em massa).
+        Se o catalogo nao tiver validade definida (validade_meses = None),
+        o curso e considerado "sem vencimento" (data_vencimento = None).
+
+        Pode receber o objeto `catalogo` diretamente (util quando o
+        registro ainda nao esta persistido na sessao do SQLAlchemy,
+        como em scripts de seed/importacao em massa).
         """
         cat = catalogo or self.catalogo
         if cat is None:
             raise ValueError(
-                "Não foi possível determinar o catálogo NR. "
-                "Informe o parâmetro 'catalogo' ou garanta que o "
-                "registro esteja associado a uma sessão válida."
+                "Nao foi possivel determinar o catalogo NR. "
+                "Informe o parametro 'catalogo' ou garanta que o "
+                "registro esteja associado a uma sessao valida."
             )
+
+        if cat.validade_meses is None:
+            self.data_vencimento = None
+            return None
 
         meses = cat.validade_meses
 
-        ano = self.data_realizado.year + \
-            (self.data_realizado.month - 1 + meses) // 12
+        ano = self.data_realizado.year + (self.data_realizado.month - 1 + meses) // 12
         mes = (self.data_realizado.month - 1 + meses) % 12 + 1
-        # evita erro em meses com menos dias
-        dia = min(self.data_realizado.day, 28)
+        dia = min(self.data_realizado.day, 28)  # evita erro em meses com menos dias
 
-        self.data_vencimento = self.data_realizado.replace(
-            year=ano, month=mes, day=dia)
+        self.data_vencimento = self.data_realizado.replace(year=ano, month=mes, day=dia)
         return self.data_vencimento
 
     def status(self):
-        """Retorna (status, dias_restantes) com base na data de hoje."""
-        if not self.data_vencimento:
-            return "INDEFINIDO", None
+        """
+        Retorna (status, dias_restantes) com base na data de hoje.
+
+        Status possiveis:
+            SEM_VENCIMENTO -> curso nao possui validade (nunca vence)
+            VALIDO         -> dentro do prazo (mais de 30 dias para vencer)
+            A_VENCER       -> faltam 30 dias ou menos para vencer
+            VENCIDO        -> prazo ja expirou
+        """
+        if self.data_vencimento is None:
+            return "SEM_VENCIMENTO", None
 
         hoje = date.today()
         dias_restantes = (self.data_vencimento - hoje).days
