@@ -11,6 +11,11 @@ BASE_URL = os.environ.get("BASE_URL", "http://127.0.0.1:5000")
 
 
 def gerar_qrcode_colaborador(colaborador):
+    """
+    Gera um QR Code contendo a URL de verificacao do colaborador.
+    Ao escanear, abre no navegador a pagina /verificar/{cpf}
+    com todos os cursos e validades atualizados.
+    """
     conteudo = BASE_URL + "/verificar/" + colaborador.cpf
 
     qr = qrcode.QRCode(
@@ -36,6 +41,9 @@ def _carregar_fonte(tamanho=28):
 
 
 def montar_folha_a4(lista_colaboradores, qr_por_linha=3, qr_por_coluna=4):
+    """
+    Monta paginas A4 (300 DPI) com multiplos QR Codes + nome/CPF do colaborador.
+    """
     A4_LARGURA = 2480
     A4_ALTURA = 3508
     margem = 100
@@ -69,14 +77,14 @@ def montar_folha_a4(lista_colaboradores, qr_por_linha=3, qr_por_coluna=4):
         folha.paste(qr_img, (x + 20, y))
 
         texto = colaborador.nome + "\nCPF: " + colaborador.cpf
-        draw.text((x + 20, y + tamanho_qr + 10),
-                  texto, fill="black", font=fonte)
+        draw.text((x + 20, y + tamanho_qr + 10), texto, fill="black", font=fonte)
 
     paginas.append(folha)
     return paginas
 
 
 def exportar_paginas_pdf(paginas, nome_arquivo="qrcodes_colaboradores.pdf"):
+    """Salva a lista de imagens (paginas) como um unico PDF multi-pagina."""
     if not paginas:
         raise ValueError("Nenhuma pagina para exportar.")
 
