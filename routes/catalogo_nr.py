@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, redirect, url_for, flash
-from models import db, CatalogoNR
+from models import db, CatalogoNR, ColaboradorCurso
 from forms import CatalogoNRForm
 from flask_login import login_required
 
@@ -18,9 +18,15 @@ def listar():
 def novo():
     form = CatalogoNRForm()
     if form.validate_on_submit():
+        validade = None if form.sem_validade.data else form.validade_meses.data
+
+        if not form.sem_validade.data and not form.validade_meses.data:
+            flash("Informe a validade em meses, ou marque 'Sem validade'.", "danger")
+            return render_template("catalogo_nr/form.html", form=form)
+
         curso = CatalogoNR(
             nome_curso=form.nome_curso.data,
-            validade_meses=form.validade_meses.data,
+            validade_meses=validade,
             descricao=form.descricao.data
         )
         db.session.add(curso)
@@ -34,19 +40,33 @@ def novo():
 @login_required
 def editar(id):
     curso = CatalogoNR.query.get_or_404(id)
+
     form = CatalogoNRForm(obj=curso)
+
+    # No GET (primeira exibicao), marca o checkbox se o curso atual
+    # nao possui validade definida.
+    if not form.is_submitted():
+        form.sem_validade.data = curso.validade_meses is None
+
     if form.validate_on_submit():
+        validade = None if form.sem_validade.data else form.validade_meses.data
+
+        if not form.sem_validade.data and not form.validade_meses.data:
+            flash("Informe a validade em meses, ou marque 'Sem validade'.", "danger")
+            return render_template("catalogo_nr/form.html", form=form, curso=curso)
+
         curso.nome_curso = form.nome_curso.data
-        curso.validade_meses = form.validade_meses.data
+        curso.validade_meses = validade
         curso.descricao = form.descricao.data
         db.session.commit()
-        flash("Catálogo atualizado!", "success")
 
-        # Recalcula vencimento de todos os cursos vinculados a este catálogo
-        for registro in curso.colaboradorcurso_set if hasattr(curso, "colaboradorcurso_set") else []:
+        # Recalcula vencimento de todos os cursos vinculados a este catalogo
+        registros = ColaboradorCurso.query.filter_by(catalogo_nr_id=curso.id).all()
+        for registro in registros:
             registro.calcular_vencimento(curso)
         db.session.commit()
 
+        flash("Catálogo atualizado!", "success")
         return redirect(url_for("catalogo_nr.listar"))
     return render_template("catalogo_nr/form.html", form=form, curso=curso)
 
