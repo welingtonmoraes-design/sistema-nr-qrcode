@@ -2,41 +2,230 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <title>Verificação - {{ colaborador.nome }}</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background: #f4f4f4; }
-        .card { background: white; border-radius: 10px; padding: 20px; max-width: 500px; margin: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        h2 { color: #333; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
-        th { background: #333; color: white; }
-        .vencido { background: #ffdddd; }
-        .a_vencer { background: #fff3cd; }
-        .valido { background: #d4edda; }
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            margin: 0;
+            padding: 16px;
+            background: #f0f2f5;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+
+        .header {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .header h1 {
+            font-size: clamp(20px, 5vw, 28px);
+            margin: 0;
+            color: #1a1a1a;
+        }
+
+        .header p {
+            margin: 2px 0;
+            font-size: clamp(13px, 3vw, 15px);
+            color: #666;
+        }
+
+        .badge-geral {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        .badge-ok { background: #d4edda; color: #155724; }
+        .badge-atencao { background: #fff3cd; color: #856404; }
+        .badge-vencido { background: #f8d7da; color: #721c24; }
+
+        /* Tabela para telas grandes (tablet/desktop) */
+        .tabela-desktop {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .tabela-desktop th, .tabela-desktop td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+
+        .tabela-desktop th {
+            background: #2c3e50;
+            color: white;
+            font-weight: 600;
+        }
+
+        .tabela-desktop tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Cards para telas pequenas (celular) */
+        .lista-mobile {
+            display: none;
+        }
+
+        .curso-card {
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 10px;
+        }
+
+        .curso-card .curso-nome {
+            font-weight: 700;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .curso-card .curso-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: #555;
+            margin-bottom: 4px;
+        }
+
+        .status-pill {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 700;
+            margin-top: 6px;
+        }
+
+        .status-VALIDO { background: #d4edda; color: #155724; }
+        .status-A_VENCER { background: #fff3cd; color: #856404; }
+        .status-VENCIDO { background: #f8d7da; color: #721c24; }
+
+        .rodape {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid #eee;
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+        }
+
+        /* Breakpoint: celulares (até 600px) usam cards em vez de tabela */
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            .card { padding: 16px; border-radius: 10px; }
+            .tabela-desktop { display: none; }
+            .lista-mobile { display: block; }
+        }
+
+        /* Telas grandes: aumenta um pouco o espaçamento */
+        @media (min-width: 1024px) {
+            body { padding: 40px; }
+            .card { padding: 32px; }
+        }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h2>{{ colaborador.nome }}</h2>
-        <p><b>CPF:</b> {{ colaborador.cpf }}</p>
-        {% if colaborador.matricula %}<p><b>Matrícula:</b> {{ colaborador.matricula }}</p>{% endif %}
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <h1>{{ colaborador.nome }}</h1>
+                <p><strong>CPF:</strong> {{ colaborador.cpf }}</p>
+                {% if colaborador.matricula %}
+                    <p><strong>Matrícula:</strong> {{ colaborador.matricula }}</p>
+                {% endif %}
 
-        <table>
-            <tr><th>Curso</th><th>Realizado</th><th>Vencimento</th><th>Status</th></tr>
-            {% for item in cursos_info %}
-            <tr class="{{ 'vencido' if item.status == 'VENCIDO' else ('a_vencer' if item.status == 'A_VENCER' else 'valido') }}">
-                <td>{{ item.curso.catalogo.nome_curso }}</td>
-                <td>{{ item.curso.data_realizado.strftime('%d/%m/%Y') }}</td>
-                <td>{{ item.curso.data_vencimento.strftime('%d/%m/%Y') }}</td>
-                <td>{{ item.status }}</td>
-            </tr>
-            {% endfor %}
-        </table>
+                {% set tem_vencido = cursos_info | selectattr("status", "equalto", "VENCIDO") | list %}
+                {% set tem_a_vencer = cursos_info | selectattr("status", "equalto", "A_VENCER") | list %}
 
-        <p style="margin-top: 15px; font-size: 12px; color: #888;">
-            Atualizado automaticamente — Sistema de Gestão de NRs
-        </p>
+                {% if tem_vencido %}
+                    <span class="badge-geral badge-vencido">⚠️ Possui curso(s) vencido(s)</span>
+                {% elif tem_a_vencer %}
+                    <span class="badge-geral badge-atencao">⏰ Curso(s) próximo(s) do vencimento</span>
+                {% else %}
+                    <span class="badge-geral badge-ok">✅ Todos os cursos em dia</span>
+                {% endif %}
+            </div>
+
+            <!-- Versão TABELA: exibida em tablet/desktop -->
+            <table class="tabela-desktop">
+                <thead>
+                    <tr>
+                        <th>Curso</th>
+                        <th>Realizado</th>
+                        <th>Vencimento</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in cursos_info %}
+                    <tr>
+                        <td>{{ item.curso.catalogo.nome_curso }}</td>
+                        <td>{{ item.curso.data_realizado.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ item.curso.data_vencimento.strftime('%d/%m/%Y') if item.curso.data_vencimento else 'N/A' }}</td>
+                        <td>
+                            <span class="status-pill status-{{ item.status }}">
+                                {{ item.status.replace('_', ' ') }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- Versão CARDS: exibida em celular -->
+            <div class="lista-mobile">
+                {% for item in cursos_info %}
+                <div class="curso-card">
+                    <div class="curso-nome">{{ item.curso.catalogo.nome_curso }}</div>
+                    <div class="curso-info">
+                        <span>Realizado:</span>
+                        <span>{{ item.curso.data_realizado.strftime('%d/%m/%Y') }}</span>
+                    </div>
+                    <div class="curso-info">
+                        <span>Vencimento:</span>
+                        <span>{{ item.curso.data_vencimento.strftime('%d/%m/%Y') if item.curso.data_vencimento else 'N/A' }}</span>
+                    </div>
+                    <span class="status-pill status-{{ item.status }}">
+                        {{ item.status.replace('_', ' ') }}
+                    </span>
+                </div>
+                {% endfor %}
+
+                {% if not cursos_info %}
+                <p style="text-align:center; color:#999;">Nenhum curso cadastrado.</p>
+                {% endif %}
+            </div>
+
+            <div class="rodape">
+                Sistema de Gestão de NRs • Verificação Automática
+            </div>
+        </div>
     </div>
 </body>
 </html>
