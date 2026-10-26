@@ -15,11 +15,22 @@
     </thead>
     <tbody>
     {% for item in cursos_info %}
-        <tr class="{{ 'table-danger' if item.status == 'VENCIDO' else ('table-warning' if item.status == 'A_VENCER' else 'table-success') }}">
+        <tr class="{{
+            'table-danger' if item.status == 'VENCIDO'
+            else ('table-warning' if item.status == 'A_VENCER'
+            else ('table-info' if item.status == 'SEM_VENCIMENTO'
+            else 'table-success'))
+        }}">
             <td>{{ item.curso.catalogo.nome_curso }}</td>
             <td>{{ item.curso.data_realizado.strftime('%d/%m/%Y') }}</td>
-            <td>{{ item.curso.data_vencimento.strftime('%d/%m/%Y') }}</td>
-            <td>{{ item.status }}</td>
+            <td>
+                {% if item.curso.data_vencimento %}
+                    {{ item.curso.data_vencimento.strftime('%d/%m/%Y') }}
+                {% else %}
+                    <span class="badge bg-info text-dark">Sem validade</span>
+                {% endif %}
+            </td>
+            <td>{{ item.status.replace('_', ' ') }}</td>
         </tr>
     {% endfor %}
     </tbody>
