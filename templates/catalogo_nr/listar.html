@@ -9,7 +9,7 @@
     <thead>
         <tr>
             <th>Curso</th>
-            <th>Validade (meses)</th>
+            <th>Validade</th>
             <th>Descrição</th>
             <th>Ações</th>
         </tr>
@@ -18,7 +18,13 @@
     {% for c in cursos %}
         <tr>
             <td>{{ c.nome_curso }}</td>
-            <td>{{ c.validade_meses }}</td>
+            <td>
+                {% if c.validade_meses is none %}
+                    <span class="badge bg-info text-dark">Sem validade</span>
+                {% else %}
+                    {{ c.validade_meses }} meses
+                {% endif %}
+            </td>
             <td>{{ c.descricao }}</td>
             <td>
                 <a href="{{ url_for('catalogo_nr.editar', id=c.id) }}" class="btn btn-sm btn-warning">Editar</a>
