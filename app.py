@@ -82,8 +82,8 @@ def verificar_colaborador(cpf):
 
 
 # --- Criação automática das tabelas no deploy ---
-with app.app_context():
-    db.create_all()
+#with app.app_context():
+    #db.create_all()
 
 @app.route("/init-db-secreto-xyz123")
 def inicializar_banco_remoto():
