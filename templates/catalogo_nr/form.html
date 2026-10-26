@@ -3,16 +3,40 @@
 <h2>{{ "Editar" if curso else "Novo" }} Curso NR</h2>
 <form method="POST">
     {{ form.hidden_tag() }}
+
     <div class="mb-3">
         {{ form.nome_curso.label }} {{ form.nome_curso(class="form-control") }}
+        {% for erro in form.nome_curso.errors %}
+            <div class="text-danger small">{{ erro }}</div>
+        {% endfor %}
     </div>
-    <div class="mb-3">
+
+    <div class="form-check mb-3">
+        {{ form.sem_validade(class="form-check-input", id="semValidadeCheck", onclick="toggleValidade()") }}
+        {{ form.sem_validade.label }}
+    </div>
+
+    <div class="mb-3" id="campoValidade">
         {{ form.validade_meses.label }} {{ form.validade_meses(class="form-control") }}
+        {% for erro in form.validade_meses.errors %}
+            <div class="text-danger small">{{ erro }}</div>
+        {% endfor %}
     </div>
+
     <div class="mb-3">
         {{ form.descricao.label }} {{ form.descricao(class="form-control") }}
     </div>
+
     <button type="submit" class="btn btn-primary">Salvar</button>
     <a href="{{ url_for('catalogo_nr.listar') }}" class="btn btn-secondary">Cancelar</a>
 </form>
+
+<script>
+function toggleValidade() {
+    const checkbox = document.getElementById('semValidadeCheck');
+    const campo = document.getElementById('campoValidade');
+    campo.style.display = checkbox.checked ? 'none' : 'block';
+}
+document.addEventListener('DOMContentLoaded', toggleValidade);
+</script>
 {% endblock %}
