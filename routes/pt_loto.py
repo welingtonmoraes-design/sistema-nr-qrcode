@@ -11,6 +11,10 @@ from services.pt_loto_service import ler_planilha, gravar_linhas
 bp_pt_loto = Blueprint("pt_loto", __name__, url_prefix="/pt-loto")
 
 SEM_EMPRESA = "__SEM_EMPRESA__"
+COLUNAS_ORDEM = {
+    "nome", "matricula", "empresa",
+    "data_treinamento", "validade", "condicao", "instrutor",
+}
 
 
 def _norm(texto):
@@ -21,16 +25,50 @@ def _norm(texto):
 
 
 def _filtros():
-    """Filtros atuais vindos da URL (mantidos ao editar, revalidar e excluir)."""
+    """Filtros e ordenacao atuais da URL (mantidos ao editar, revalidar e excluir)."""
     return {
         "nome": request.args.get("nome", "").strip(),
         "empresa": request.args.get("empresa", "").strip(),
         "condicao": request.args.get("condicao", "").strip(),
+        "ordem": request.args.get("ordem", "").strip(),
+        "direcao": request.args.get("direcao", "").strip(),
     }
 
 
 def _voltar_lista():
     return redirect(url_for("pt_loto.index", **_filtros()))
+
+
+def _valor_ordenacao(item, chave):
+    r = item["r"]
+    if chave == "nome":
+        return _norm(r.nome)
+    if chave == "matricula":
+        return _norm(r.matricula)
+    if chave == "empresa":
+        return _norm(r.empresa)
+    if chave == "instrutor":
+        return _norm(r.instrutor)
+    if chave == "data_treinamento":
+        return r.data_treinamento
+    if chave == "validade":
+        return r.data_validade
+    if chave == "condicao":
+        return item["dias"]          # dias restantes (vencidos = negativos)
+    return _norm(r.nome)
+
+
+def _ordenar(itens, chave, direcao):
+    """Ordena a lista; registros sem valor ficam sempre no final."""
+    com_valor, vazios = [], []
+    for item in itens:
+        v = _valor_ordenacao(item, chave)
+        if v is None or v == "":
+            vazios.append(item)
+        else:
+            com_valor.append((v, item))
+    com_valor.sort(key=lambda x: x[0], reverse=(direcao == "desc"))
+    return [i for _, i in com_valor] + vazios
 
 
 @bp_pt_loto.route("/")
@@ -40,6 +78,9 @@ def index():
     nome = filtros["nome"]
     empresa = filtros["empresa"]
     filtro = filtros["condicao"]   # "" (em vigor) | VALIDO | REAVALIAR | VENCIDO | TODOS
+
+    ordem = filtros["ordem"] if filtros["ordem"] in COLUNAS_ORDEM else "nome"
+    direcao = filtros["direcao"] if filtros["direcao"] in ("asc", "desc") else "asc"
 
     todos = TreinamentoPTLoto.query.order_by(TreinamentoPTLoto.nome).all()
 
@@ -88,11 +129,14 @@ def index():
         if visivel:
             itens.append({"r": r, "codigo": codigo, "texto": texto, "dias": dias})
 
+    itens = _ordenar(itens, ordem, direcao)
+
     return render_template(
         "pt_loto/index.html",
         itens=itens, contagem=contagem, total=total,
         em_vigor=contagem["VALIDO"] + contagem["REAVALIAR"],
         nome=nome, empresa=empresa, filtro=filtro,
+        ordem=ordem, direcao=direcao,
         lista_empresas=lista_empresas, tem_sem_empresa=tem_sem_empresa,
         SEM_EMPRESA=SEM_EMPRESA,
         filtros_ativos=bool(nome or empresa or filtro),
@@ -105,7 +149,6 @@ def novo():
     form = TreinamentoPTLotoForm()
     if form.validate_on_submit():
         registro = TreinamentoPTLoto(
-            numero=form.numero.data,
             nome=form.nome.data,
             matricula=form.matricula.data,
             empresa=form.empresa.data,
@@ -125,7 +168,6 @@ def editar(id):
     registro = db.get_or_404(TreinamentoPTLoto, id)
     form = TreinamentoPTLotoForm(obj=registro)
     if form.validate_on_submit():
-        registro.numero = form.numero.data
         registro.nome = form.nome.data
         registro.matricula = form.matricula.data
         registro.empresa = form.empresa.data
@@ -149,9 +191,10 @@ def revalidar(id):
         if form.instrutor.data:
             registro.instrutor = form.instrutor.data
         db.session.commit()
+        validade = registro.data_validade
         flash(
             f"Treinamento de {registro.nome} revalidado. "
-            f"Nova validade: {registro.data_validade.strftime('%d/%m/%Y')}.",
+            f"Nova validade: {validade.strftime('%d/%m/%Y') if validade else '-'}.",
             "success"
         )
         return _voltar_lista()
