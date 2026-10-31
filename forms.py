@@ -54,6 +54,7 @@ class TreinamentoPTLotoForm(FlaskForm):
     )
     instrutor = StringField("Instrutor", validators=[Optional(), Length(max=150)])
 
+
 class ImportarExcelForm(FlaskForm):
     arquivo = FileField(
         "Planilha Excel (.xlsx)",
