@@ -2,13 +2,11 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Verificação - {{ colaborador.nome }}</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='assets/logogev.png') }}">
     <style>
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
@@ -23,10 +21,7 @@
             color: #333;
         }
 
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
+        .container { max-width: 700px; margin: 0 auto; }
 
         .card {
             background: rgba(255, 255, 255, 0.95);
@@ -35,116 +30,79 @@
             box-shadow: 0 2px 12px rgba(0,0,0,0.15);
         }
 
-        .logo-topo {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 16px;
-        }
-
-        .logo-topo img {
-            height: 50px;
-        }
+        .logo-topo { display: flex; justify-content: center; margin-bottom: 16px; }
+        .logo-topo img { height: 50px; }
 
         .header {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
             margin-bottom: 20px;
             padding-bottom: 16px;
             border-bottom: 2px solid #eee;
         }
-
         .header h1 {
             font-size: clamp(20px, 5vw, 28px);
-            margin: 0;
+            margin: 0 0 4px 0;
             color: #1a1a1a;
         }
+        .header p { margin: 2px 0; font-size: clamp(12px, 3vw, 14px); color: #666; }
 
-        .header p {
-            margin: 2px 0;
-            font-size: clamp(13px, 3vw, 15px);
-            color: #666;
+        h2.secao {
+            font-size: clamp(15px, 4vw, 18px);
+            margin: 20px 0 10px 0;
+            color: #2c3e50;
         }
 
-        .badge-geral {
-            display: inline-block;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 600;
-            margin-top: 8px;
-        }
-
-        .badge-ok { background: #d4edda; color: #155724; }
-        .badge-atencao { background: #fff3cd; color: #856404; }
-        .badge-vencido { background: #f8d7da; color: #721c24; }
-
-        .tabela-desktop {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-
-        .tabela-desktop th, .tabela-desktop td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-            font-size: 14px;
-        }
-
-        .tabela-desktop th {
-            background: #2c3e50;
-            color: white;
-            font-weight: 600;
-        }
-
-        .tabela-desktop tr:last-child td {
-            border-bottom: none;
-        }
-
-        .lista-mobile {
-            display: none;
-        }
-
-        .curso-card {
-            border: 1px solid #eee;
-            border-radius: 8px;
-            padding: 14px;
-            margin-bottom: 10px;
-            background: white;
-        }
-
-        .curso-card .curso-nome {
-            font-weight: 700;
-            font-size: 16px;
-            margin-bottom: 8px;
-        }
-
-        .curso-card .curso-info {
+        /* ---------- Cursos de NR ---------- */
+        .nr-item {
             display: flex;
-            justify-content: space-between;
-            font-size: 13px;
-            color: #555;
-            margin-bottom: 4px;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            background: #fff;
         }
-
-        .status-pill {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 12px;
+        .nr-icone {
+            flex: 0 0 auto;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
             font-weight: 700;
-            margin-top: 6px;
+            color: #fff;
         }
+        .nr-ok  { background: #198754; }
+        .nr-venc { background: #dc3545; }
+        .nr-dados { flex: 1 1 auto; min-width: 0; }
+        .nr-nome { font-weight: 700; font-size: clamp(14px, 3.8vw, 16px); }
+        .nr-datas { font-size: clamp(11px, 3vw, 13px); color: #555; }
+        .nr-aviso-venc { color: #dc3545; font-weight: 600; }
+        .nr-aviso-atencao { color: #b8860b; font-weight: 600; }
+        .nr-aviso-ok { color: #198754; font-weight: 600; }
 
-        .status-VALIDO { background: #d4edda; color: #155724; }
-        .status-A_VENCER { background: #fff3cd; color: #856404; }
-        .status-VENCIDO { background: #f8d7da; color: #721c24; }
-        .status-SEM_VENCIMENTO { background: #d1ecf1; color: #0c5460; }
+        /* ---------- Treinamento de PT ---------- */
+        .pt-box {
+            border-radius: 10px;
+            padding: 14px 16px;
+            border: 2px solid;
+        }
+        .pt-VALIDO    { background: #d4edda; border-color: #198754; color: #0f5132; }
+        .pt-REAVALIAR { background: #fff3cd; border-color: #e0a800; color: #664d03; }
+        .pt-VENCIDO   { background: #f8d7da; border-color: #dc3545; color: #842029; }
+        .pt-NENHUM    { background: #eceff1; border-color: #b0bec5; color: #546e7a; }
+
+        .pt-titulo { font-weight: 700; font-size: clamp(14px, 4vw, 17px); margin-bottom: 6px; }
+        .pt-linha { font-size: clamp(12px, 3.3vw, 14px); margin: 2px 0; }
+        .pt-situacao { font-weight: 700; font-size: clamp(13px, 3.6vw, 15px); margin-top: 8px; }
+
+        .vazio { text-align: center; color: #999; padding: 10px; }
 
         .rodape {
-            margin-top: 20px;
-            padding-top: 16px;
+            margin-top: 22px;
+            padding-top: 14px;
             border-top: 1px solid #eee;
             text-align: center;
             font-size: 12px;
@@ -154,10 +112,7 @@
         @media (max-width: 600px) {
             body { padding: 10px; }
             .card { padding: 16px; border-radius: 10px; }
-            .tabela-desktop { display: none; }
-            .lista-mobile { display: block; }
         }
-
         @media (min-width: 1024px) {
             body { padding: 40px; }
             .card { padding: 32px; }
@@ -165,95 +120,84 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="card">
-            <div class="logo-topo">
-                <img src="{{ url_for('static', filename='assets/logogev.png') }}" alt="Logo">
-            </div>
+<div class="container">
+    <div class="card">
+        <div class="logo-topo">
+            <img src="{{ url_for('static', filename='assets/logogev.png') }}" alt="Logo">
+        </div>
 
-            <div class="header">
-                <h1>{{ colaborador.nome }}</h1>
-                <p><strong>CPF:</strong> {{ colaborador.cpf }}</p>
-                {% if colaborador.matricula %}
-                    <p><strong>Matrícula:</strong> {{ colaborador.matricula }}</p>
-                {% endif %}
+        <div class="header">
+            <h1>{{ colaborador.nome }}</h1>
+            <p><strong>CPF:</strong> {{ colaborador.cpf }}
+               {% if colaborador.matricula %} &nbsp;|&nbsp; <strong>Matrícula:</strong> {{ colaborador.matricula }}{% endif %}</p>
+        </div>
 
-                {% set tem_vencido = cursos_info | selectattr("status", "equalto", "VENCIDO") | list %}
-                {% set tem_a_vencer = cursos_info | selectattr("status", "equalto", "A_VENCER") | list %}
-
-                {% if tem_vencido %}
-                    <span class="badge-geral badge-vencido">⚠️ Possui curso(s) vencido(s)</span>
-                {% elif tem_a_vencer %}
-                    <span class="badge-geral badge-atencao">⏰ Curso(s) próximo(s) do vencimento</span>
-                {% else %}
-                    <span class="badge-geral badge-ok">✅ Todos os cursos em dia</span>
-                {% endif %}
-            </div>
-
-            <table class="tabela-desktop">
-                <thead>
-                    <tr>
-                        <th>Curso</th>
-                        <th>Realizado</th>
-                        <th>Vencimento</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in cursos_info %}
-                    <tr>
-                        <td>{{ item.curso.catalogo.nome_curso }}</td>
-                        <td>{{ item.curso.data_realizado.strftime('%d/%m/%Y') }}</td>
-                        <td>
-                            {% if item.curso.data_vencimento %}
-                                {{ item.curso.data_vencimento.strftime('%d/%m/%Y') }}
-                            {% else %}
-                                Sem validade
-                            {% endif %}
-                        </td>
-                        <td>
-                            <span class="status-pill status-{{ item.status }}">
-                                {{ item.status.replace('_', ' ') }}
-                            </span>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-
-            <div class="lista-mobile">
-                {% for item in cursos_info %}
-                <div class="curso-card">
-                    <div class="curso-nome">{{ item.curso.catalogo.nome_curso }}</div>
-                    <div class="curso-info">
-                        <span>Realizado:</span>
-                        <span>{{ item.curso.data_realizado.strftime('%d/%m/%Y') }}</span>
+        <!-- Cursos de NR -->
+        <h2 class="secao">🎓 Cursos de NR</h2>
+        {% for item in cursos_info %}
+            {% set vencido = (item.status == 'VENCIDO') %}
+            <div class="nr-item">
+                <div class="nr-icone {{ 'nr-venc' if vencido else 'nr-ok' }}">{{ '✖' if vencido else '✔' }}</div>
+                <div class="nr-dados">
+                    <div class="nr-nome">{{ item.curso.catalogo.nome_curso }}</div>
+                    <div class="nr-datas">
+                        Realizado: {{ item.curso.data_realizado.strftime('%d/%m/%Y') }}
+                        &middot;
+                        {% if item.curso.data_vencimento %}
+                            Validade: {{ item.curso.data_vencimento.strftime('%d/%m/%Y') }}
+                        {% else %}
+                            Validade: sem validade
+                        {% endif %}
                     </div>
-                    <div class="curso-info">
-                        <span>Vencimento:</span>
-                        <span>
-                            {% if item.curso.data_vencimento %}
-                                {{ item.curso.data_vencimento.strftime('%d/%m/%Y') }}
-                            {% else %}
-                                Sem validade
-                            {% endif %}
-                        </span>
+                    <div class="nr-datas">
+                        {% if item.status == 'VENCIDO' %}
+                            <span class="nr-aviso-venc">Vencido há {{ -item.dias_restantes }} dia(s)</span>
+                        {% elif item.status == 'A_VENCER' %}
+                            <span class="nr-aviso-atencao">Válido, vence em {{ item.dias_restantes }} dia(s)</span>
+                        {% elif item.status == 'SEM_VENCIMENTO' %}
+                            <span class="nr-aviso-ok">Válido, sem validade</span>
+                        {% else %}
+                            <span class="nr-aviso-ok">Válido</span>
+                        {% endif %}
                     </div>
-                    <span class="status-pill status-{{ item.status }}">
-                        {{ item.status.replace('_', ' ') }}
-                    </span>
                 </div>
-                {% endfor %}
+            </div>
+        {% else %}
+            <p class="vazio">Nenhum curso de NR cadastrado.</p>
+        {% endfor %}
 
-                {% if not cursos_info %}
-                <p style="text-align:center; color:#999;">Nenhum curso cadastrado.</p>
+        <!-- Treinamento de PT e LOTO -->
+        <h2 class="secao">🔒 Treinamento de PT e LOTO</h2>
+        {% if pt_info %}
+            <div class="pt-box pt-{{ pt_info.codigo }}">
+                <div class="pt-titulo">Permissão de Trabalho (PT) e LOTO</div>
+                <div class="pt-linha"><strong>Treinamento realizado em:</strong> {{ pt_info.registro.data_treinamento.strftime('%d/%m/%Y') }}</div>
+                <div class="pt-linha"><strong>Validade:</strong>
+                    {{ pt_info.registro.data_validade.strftime('%d/%m/%Y') if pt_info.registro.data_validade else '—' }}</div>
+                {% if pt_info.registro.empresa %}
+                    <div class="pt-linha"><strong>Empresa:</strong> {{ pt_info.registro.empresa }}</div>
                 {% endif %}
+                <div class="pt-situacao">
+                    {% if pt_info.codigo == 'VENCIDO' %}
+                        🔴 {{ pt_info.texto }}{% if pt_info.dias != -99999 %} · há {{ -pt_info.dias }} dia(s){% endif %}
+                    {% elif pt_info.codigo == 'REAVALIAR' %}
+                        🟡 {{ pt_info.texto }} · faltam {{ pt_info.dias }} dia(s)
+                    {% else %}
+                        🟢 {{ pt_info.texto }} · faltam {{ pt_info.dias }} dia(s)
+                    {% endif %}
+                </div>
             </div>
+        {% else %}
+            <div class="pt-box pt-NENHUM">
+                <div class="pt-titulo">Sem treinamento de PT registrado</div>
+                <div class="pt-linha">Nenhum registro de PT/LOTO encontrado para este colaborador.</div>
+            </div>
+        {% endif %}
 
-            <div class="rodape">
-                Sistema de Gestão de NRs • Verificação Automática
-            </div>
+        <div class="rodape">
+            Sistema de Controle de EHS &bull; Verificação automática
         </div>
     </div>
+</div>
 </body>
 </html>
