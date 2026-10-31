@@ -1,13 +1,81 @@
 {% extends "base.html" %}
 {% block content %}
 
+<style>
+    /* ---------- Balões de resumo: sempre em uma única linha ---------- */
+    .resumo-cards {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: .5rem;
+        margin-bottom: 1rem;
+    }
+    .resumo-item {
+        flex: 1 1 0;              /* mesma largura, divide o espaço disponível */
+        min-width: 0;
+        text-decoration: none;
+        container-type: inline-size;
+    }
+    .resumo-box {
+        padding: .5rem .25rem;
+        border-radius: .375rem;
+        text-align: center;
+        white-space: nowrap;
+        line-height: 1.25;
+        height: 100%;
+        /* alternativa para navegadores sem container queries */
+        font-size: clamp(7px, 1.6vw, 15px);
+    }
+    @supports (font-size: 1cqw) {
+        /* fonte proporcional à largura de cada balão */
+        .resumo-box { font-size: clamp(7px, 7cqw, 15px); }
+    }
+    .resumo-box strong {
+        display: block;
+        font-size: 1.6em;
+    }
+    .resumo-box .resumo-sub {
+        font-size: .8em;
+        opacity: .75;
+    }
+    /* balão muito estreito (celular): o rótulo pode quebrar, os balões continuam lado a lado */
+    @container (max-width: 110px) {
+        .resumo-box { white-space: normal; }
+    }
+
+    /* ---------- Tabela: Nome em uma linha, fonte e colunas se ajustam ---------- */
+    .tabela-pt {
+        font-size: clamp(11px, 1.05vw, 14px);
+        width: 100%;
+    }
+    .tabela-pt th,
+    .tabela-pt td {
+        padding: .35rem .45rem;
+        vertical-align: middle;
+    }
+    .tabela-pt td.col-nome {
+        white-space: nowrap;      /* nome sempre em uma linha */
+        font-weight: 500;
+    }
+    .tabela-pt td.col-data {
+        white-space: nowrap;
+    }
+    .tabela-pt td.col-acoes {
+        white-space: nowrap;
+    }
+    .tabela-pt .btn {
+        --bs-btn-padding-y: .15rem;
+        --bs-btn-padding-x: .4rem;
+        --bs-btn-font-size: .85em;
+    }
+</style>
+
 {# Cabecalho clicavel para ordenar #}
 {% macro th(chave, titulo, ordem, direcao, nome, empresa, filtro) %}
     {% set ativo = (ordem == chave) %}
     {% set prox = 'desc' if (ativo and direcao == 'asc') else 'asc' %}
     <th>
         <a href="{{ url_for('pt_loto.index', nome=nome, empresa=empresa, condicao=filtro, ordem=chave, direcao=prox) }}"
-           class="text-white text-decoration-none text-nowrap"
+           class="text-white text-decoration-none"
            title="Ordenar por {{ titulo }}">
             {{ titulo }}
             {% if ativo %}{{ '▲' if direcao == 'asc' else '▼' }}{% else %}<span style="opacity:.5;">⇅</span>{% endif %}
@@ -23,31 +91,29 @@
     </div>
 </div>
 
-<!-- Resumo (clicável: filtra pela condição, mantendo nome, empresa e ordem) -->
-<div class="row g-2 mb-3">
-    <div class="col-6 col-md-3">
-        <a class="text-decoration-none" href="{{ url_for('pt_loto.index', nome=nome, empresa=empresa, ordem=ordem, direcao=direcao) }}">
-            <div class="p-2 rounded bg-light border text-center text-dark">
-                Em vigor<br><strong>{{ em_vigor }}</strong>
-                <div class="small text-muted">de {{ total }} no total</div>
-            </div>
-        </a>
-    </div>
-    <div class="col-6 col-md-3">
-        <a class="text-decoration-none" href="{{ url_for('pt_loto.index', nome=nome, empresa=empresa, condicao='VALIDO', ordem=ordem, direcao=direcao) }}">
-            <div class="p-2 rounded text-center text-white" style="background:#198754;">Dentro da validade<br><strong>{{ contagem.VALIDO }}</strong></div>
-        </a>
-    </div>
-    <div class="col-6 col-md-3">
-        <a class="text-decoration-none" href="{{ url_for('pt_loto.index', nome=nome, empresa=empresa, condicao='REAVALIAR', ordem=ordem, direcao=direcao) }}">
-            <div class="p-2 rounded text-center text-dark" style="background:#ffc107;">Reavaliar em 30 dias<br><strong>{{ contagem.REAVALIAR }}</strong></div>
-        </a>
-    </div>
-    <div class="col-6 col-md-3">
-        <a class="text-decoration-none" href="{{ url_for('pt_loto.index', nome=nome, empresa=empresa, condicao='VENCIDO', ordem=ordem, direcao=direcao) }}">
-            <div class="p-2 rounded text-center text-white" style="background:#dc3545;">Vencidos<br><strong>{{ contagem.VENCIDO }}</strong></div>
-        </a>
-    </div>
+<!-- Resumo (4 balões em uma única linha, clicáveis) -->
+<div class="resumo-cards">
+    <a class="resumo-item" href="{{ url_for('pt_loto.index', nome=nome, empresa=empresa, ordem=ordem, direcao=direcao) }}">
+        <div class="resumo-box bg-light border text-dark">
+            Em vigor<strong>{{ em_vigor }}</strong>
+            <span class="resumo-sub">de {{ total }} no total</span>
+        </div>
+    </a>
+    <a class="resumo-item" href="{{ url_for('pt_loto.index', nome=nome, empresa=empresa, condicao='VALIDO', ordem=ordem, direcao=direcao) }}">
+        <div class="resumo-box text-white" style="background:#198754;">
+            Dentro da validade<strong>{{ contagem.VALIDO }}</strong>
+        </div>
+    </a>
+    <a class="resumo-item" href="{{ url_for('pt_loto.index', nome=nome, empresa=empresa, condicao='REAVALIAR', ordem=ordem, direcao=direcao) }}">
+        <div class="resumo-box text-dark" style="background:#ffc107;">
+            Reavaliar em 30 dias<strong>{{ contagem.REAVALIAR }}</strong>
+        </div>
+    </a>
+    <a class="resumo-item" href="{{ url_for('pt_loto.index', nome=nome, empresa=empresa, condicao='VENCIDO', ordem=ordem, direcao=direcao) }}">
+        <div class="resumo-box text-white" style="background:#dc3545;">
+            Vencidos<strong>{{ contagem.VENCIDO }}</strong>
+        </div>
+    </a>
 </div>
 
 <!-- Filtros -->
@@ -107,7 +173,7 @@
 </div>
 
 <div class="table-responsive">
-<table class="table table-bordered align-middle">
+<table class="table table-bordered align-middle tabela-pt">
     <thead class="table-dark">
         <tr>
             {{ th('nome', 'Nome', ordem, direcao, nome, empresa, filtro) }}
@@ -124,11 +190,11 @@
     {% for i in itens %}
         {% set cls = {'VALIDO': 'table-success', 'REAVALIAR': 'table-warning', 'VENCIDO': 'table-danger'}[i.codigo] %}
         <tr class="{{ cls }}">
-            <td>{{ i.r.nome }}</td>
+            <td class="col-nome">{{ i.r.nome }}</td>
             <td>{{ i.r.matricula or '' }}</td>
             <td>{{ i.r.empresa or '' }}</td>
-            <td>{{ i.r.data_treinamento.strftime('%d/%m/%Y') }}</td>
-            <td>{{ i.r.data_validade.strftime('%d/%m/%Y') if i.r.data_validade else '—' }}</td>
+            <td class="col-data">{{ i.r.data_treinamento.strftime('%d/%m/%Y') }}</td>
+            <td class="col-data">{{ i.r.data_validade.strftime('%d/%m/%Y') if i.r.data_validade else '—' }}</td>
             <td>
                 <strong>{{ i.texto }}</strong><br>
                 <small>
@@ -138,7 +204,7 @@
                 </small>
             </td>
             <td>{{ i.r.instrutor or '' }}</td>
-            <td class="text-nowrap">
+            <td class="col-acoes">
                 {% if i.codigo != 'VALIDO' %}
                 <a href="{{ url_for('pt_loto.revalidar', id=i.r.id, nome=nome, empresa=empresa, condicao=filtro, ordem=ordem, direcao=direcao) }}" class="btn btn-sm btn-success">🔄 Revalidar</a>
                 {% endif %}
