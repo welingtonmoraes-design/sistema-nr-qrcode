@@ -24,6 +24,6 @@
         </div>
     </div>
     <button type="submit" class="btn btn-success">Confirmar revalidação</button>
-    <a href="{{ url_for('pt_loto.index', condicao=condicao_origem) }}" class="btn btn-secondary">Cancelar</a>
+   <a href="{{ url_for('pt_loto.index', nome=filtros.nome, empresa=filtros.empresa, condicao=filtros.condicao, ordem=filtros.ordem, direcao=filtros.direcao) }}" class="btn btn-secondary">Cancelar</a>
 </form>
 {% endblock %}
