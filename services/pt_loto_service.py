@@ -180,3 +180,29 @@ def gravar_linhas(linhas, substituir=False):
 
     db.session.commit()
     return inseridos, duplicados
+
+def buscar_pt_colaborador(colaborador):
+    """
+    Procura o treinamento de PT/LOTO do colaborador.
+    1) pela matricula/SSO (igual); 2) se nao achar, pelo nome completo.
+    Se houver varios registros, retorna o de data de treinamento mais recente.
+    """
+    candidatos = []
+
+    matricula = (colaborador.matricula or "").strip().upper()
+    if matricula:
+        candidatos = [
+            r for r in TreinamentoPTLoto.query.all()
+            if (r.matricula or "").strip().upper() == matricula
+        ]
+
+    if not candidatos:
+        nome = _norm(colaborador.nome)
+        candidatos = [
+            r for r in TreinamentoPTLoto.query.all()
+            if _norm(r.nome) == nome
+        ]
+
+    if not candidatos:
+        return None
+    return max(candidatos, key=lambda r: r.data_treinamento)
