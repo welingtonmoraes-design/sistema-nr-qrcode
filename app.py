@@ -85,5 +85,48 @@ def verificar_colaborador(cpf):
 with app.app_context():
     db.create_all()
 
+import threading
+import time
+import urllib.request
+import os
+
+def auto_ping():
+    """
+    Envia uma requisicao HTTP GET para a propria URL publica a cada 10 minutos,
+    evitando que o servico gratuito do Render entre em modo de descanso (sleep).
+    """
+    # Aguarda 1 minuto apos o app subir para garantir que ja esta online
+    time.sleep(60)
+    
+    url_publica = os.environ.get("BASE_URL")
+    
+    if not url_publica or "localhost" in url_publica or "127.0.0.1" in url_publica:
+        print("[Auto-Ping] BASE_URL nao configurada ou em ambiente local. Ping desativado.")
+        return
+
+    print(f"[Auto-Ping] Ativado para a URL: {url_publica}")
+
+    while True:
+        try:
+            # Faz a requisicao para a raiz do proprio site
+            req = urllib.request.Request(
+                url_publica, 
+                headers={'User-Agent': 'AutoPing-Bot/1.0'}
+            )
+            with urllib.request.urlopen(req, timeout=10) as response:
+                print(f"[Auto-Ping] Sucesso! Status: {response.status}")
+        except Exception as e:
+            print(f"[Auto-Ping] Erro ao tentar o ping: {e}")
+        
+        # Aguarda 10 minutos (600 segundos) antes do proximo ping
+        time.sleep(600)
+
+# Inicia a thread em segundo plano apenas se estiver rodando em producao (Gunicorn)
+# O uso de os.environ.get("RENDER") ou checar se nao e modo debug evita duplicar a thread localmente
+if not app.debug or os.environ.get("RENDER"):
+    t = threading.Thread(target=auto_ping, daemon=True)
+    t.start()
+
+
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
