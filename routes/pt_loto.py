@@ -1,9 +1,11 @@
+from datetime import date
+
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from sqlalchemy import or_
 
 from models import db, TreinamentoPTLoto
-from forms import TreinamentoPTLotoForm, ImportarExcelForm
+from forms import TreinamentoPTLotoForm, ImportarExcelForm, RevalidarForm
 from services.pt_loto_service import ler_planilha, gravar_linhas
 
 bp_pt_loto = Blueprint("pt_loto", __name__, url_prefix="/pt-loto")
@@ -13,6 +15,7 @@ bp_pt_loto = Blueprint("pt_loto", __name__, url_prefix="/pt-loto")
 @login_required
 def index():
     busca = request.args.get("busca", "").strip()
+    # "" (padrao) = em vigor | VALIDO | REAVALIAR | VENCIDO | TODOS
     filtro = request.args.get("condicao", "")
 
     query = TreinamentoPTLoto.query
@@ -32,12 +35,21 @@ def index():
     for r in registros:
         codigo, texto, dias = r.condicao()
         contagem[codigo] += 1
-        if not filtro or filtro == codigo:
+
+        if filtro == "":
+            visivel = codigo != "VENCIDO"      # padrao: oculta vencidos
+        elif filtro == "TODOS":
+            visivel = True
+        else:
+            visivel = (codigo == filtro)
+
+        if visivel:
             itens.append({"r": r, "codigo": codigo, "texto": texto, "dias": dias})
 
     return render_template(
         "pt_loto/index.html",
         itens=itens, contagem=contagem, total=len(registros),
+        em_vigor=contagem["VALIDO"] + contagem["REAVALIAR"],
         busca=busca, filtro=filtro
     )
 
@@ -76,8 +88,38 @@ def editar(id):
         registro.instrutor = form.instrutor.data
         db.session.commit()
         flash("Registro atualizado!", "success")
-        return redirect(url_for("pt_loto.index"))
+        return redirect(url_for("pt_loto.index", condicao=request.args.get("condicao", "")))
     return render_template("pt_loto/form.html", form=form, registro=registro)
+
+
+@bp_pt_loto.route("/revalidar/<int:id>", methods=["GET", "POST"])
+@login_required
+def revalidar(id):
+    """Atualiza a data do treinamento (e opcionalmente o instrutor) para revalidar."""
+    registro = db.get_or_404(TreinamentoPTLoto, id)
+    condicao_origem = request.args.get("condicao", "")
+
+    form = RevalidarForm()
+    if form.validate_on_submit():
+        registro.data_treinamento = form.data_treinamento.data
+        if form.instrutor.data:
+            registro.instrutor = form.instrutor.data
+        db.session.commit()
+        flash(
+            f"Treinamento de {registro.nome} revalidado. "
+            f"Nova validade: {registro.data_validade.strftime('%d/%m/%Y')}.",
+            "success"
+        )
+        return redirect(url_for("pt_loto.index", condicao=condicao_origem))
+
+    if not form.is_submitted():
+        form.data_treinamento.data = date.today()
+        form.instrutor.data = registro.instrutor
+
+    return render_template(
+        "pt_loto/revalidar.html",
+        form=form, registro=registro, condicao_origem=condicao_origem
+    )
 
 
 @bp_pt_loto.route("/excluir/<int:id>", methods=["POST"])
@@ -87,7 +129,7 @@ def excluir(id):
     db.session.delete(registro)
     db.session.commit()
     flash("Registro excluído.", "warning")
-    return redirect(url_for("pt_loto.index"))
+    return redirect(url_for("pt_loto.index", condicao=request.args.get("condicao", "")))
 
 
 @bp_pt_loto.route("/importar", methods=["GET", "POST"])
@@ -115,10 +157,7 @@ def importar():
 @bp_pt_loto.route("/criar-tabelas")
 @login_required
 def criar_tabelas():
-    """
-    Cria apenas as tabelas que ainda nao existem (NAO apaga dados).
-    Restrito a administradores. Necessario uma vez, por causa da nova tabela.
-    """
+    """Cria apenas as tabelas que ainda nao existem (NAO apaga dados). Somente admin."""
     if current_user.perfil != "admin":
         flash("Acesso restrito a administradores.", "danger")
         return redirect(url_for("pt_loto.index"))
