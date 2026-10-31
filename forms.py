@@ -1,4 +1,5 @@
 from flask_wtf import FlaskForm
+from flask_wtf.file import FileField, FileRequired, FileAllowed
 from wtforms import (
     StringField, PasswordField, SelectField,
     DateField, IntegerField, BooleanField
@@ -42,3 +43,22 @@ class ColaboradorCursoForm(FlaskForm):
     data_realizado = DateField(
         "Data Realizado", format="%Y-%m-%d", validators=[DataRequired()]
     )
+
+
+class TreinamentoPTLotoForm(FlaskForm):
+    numero = StringField("Número", validators=[Optional(), Length(max=20)])
+    nome = StringField("Nome", validators=[DataRequired(), Length(max=150)])
+    matricula = StringField("Matrícula/SSO", validators=[Optional(), Length(max=50)])
+    empresa = StringField("Empresa", validators=[Optional(), Length(max=150)])
+    data_treinamento = DateField(
+        "Data do Treinamento", format="%Y-%m-%d", validators=[DataRequired()]
+    )
+    instrutor = StringField("Instrutor", validators=[Optional(), Length(max=150)])
+
+
+class ImportarExcelForm(FlaskForm):
+    arquivo = FileField(
+        "Planilha Excel (.xlsx)",
+        validators=[FileRequired(), FileAllowed(["xlsx", "xlsm"], "Envie um arquivo .xlsx")]
+    )
+    substituir = BooleanField("Substituir todos os registros existentes")
