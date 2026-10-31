@@ -8,10 +8,10 @@
     </div>
 </div>
 
-<!-- Resumo (clicável: filtra pela condição) -->
+<!-- Resumo (clicável: filtra pela condição, mantendo nome e empresa) -->
 <div class="row g-2 mb-3">
     <div class="col-6 col-md-3">
-        <a class="text-decoration-none" href="{{ url_for('pt_loto.index', busca=busca) }}">
+        <a class="text-decoration-none" href="{{ url_for('pt_loto.index', nome=nome, empresa=empresa) }}">
             <div class="p-2 rounded bg-light border text-center text-dark">
                 Em vigor<br><strong>{{ em_vigor }}</strong>
                 <div class="small text-muted">de {{ total }} no total</div>
@@ -19,28 +19,40 @@
         </a>
     </div>
     <div class="col-6 col-md-3">
-        <a class="text-decoration-none" href="{{ url_for('pt_loto.index', busca=busca, condicao='VALIDO') }}">
+        <a class="text-decoration-none" href="{{ url_for('pt_loto.index', nome=nome, empresa=empresa, condicao='VALIDO') }}">
             <div class="p-2 rounded text-center text-white" style="background:#198754;">Dentro da validade<br><strong>{{ contagem.VALIDO }}</strong></div>
         </a>
     </div>
     <div class="col-6 col-md-3">
-        <a class="text-decoration-none" href="{{ url_for('pt_loto.index', busca=busca, condicao='REAVALIAR') }}">
+        <a class="text-decoration-none" href="{{ url_for('pt_loto.index', nome=nome, empresa=empresa, condicao='REAVALIAR') }}">
             <div class="p-2 rounded text-center text-dark" style="background:#ffc107;">Reavaliar em 30 dias<br><strong>{{ contagem.REAVALIAR }}</strong></div>
         </a>
     </div>
     <div class="col-6 col-md-3">
-        <a class="text-decoration-none" href="{{ url_for('pt_loto.index', busca=busca, condicao='VENCIDO') }}">
+        <a class="text-decoration-none" href="{{ url_for('pt_loto.index', nome=nome, empresa=empresa, condicao='VENCIDO') }}">
             <div class="p-2 rounded text-center text-white" style="background:#dc3545;">Vencidos<br><strong>{{ contagem.VENCIDO }}</strong></div>
         </a>
     </div>
 </div>
 
+<!-- Filtros -->
 <form method="GET" class="row g-2 mb-3">
-    <div class="col-12 col-md-6">
-        <input type="text" name="busca" value="{{ busca }}" class="form-control"
-               placeholder="Buscar por nome, matrícula/SSO, empresa ou instrutor...">
+    <div class="col-12 col-md-4">
+        <input type="text" name="nome" value="{{ nome }}" class="form-control"
+               placeholder="🔍 Nome (parcial ou completo)">
     </div>
-    <div class="col-8 col-md-4">
+    <div class="col-12 col-md-3">
+        <select name="empresa" class="form-select">
+            <option value="" {{ 'selected' if empresa == '' }}>Todas as empresas</option>
+            {% for e in lista_empresas %}
+                <option value="{{ e }}" {{ 'selected' if empresa == e }}>{{ e }}</option>
+            {% endfor %}
+            {% if tem_sem_empresa %}
+                <option value="{{ SEM_EMPRESA }}" {{ 'selected' if empresa == SEM_EMPRESA }}>(Sem empresa)</option>
+            {% endif %}
+        </select>
+    </div>
+    <div class="col-12 col-md-3">
         <select name="condicao" class="form-select">
             <option value="" {{ 'selected' if filtro == '' }}>Em vigor (padrão)</option>
             <option value="VALIDO" {{ 'selected' if filtro == 'VALIDO' }}>Dentro da validade</option>
@@ -49,15 +61,18 @@
             <option value="TODOS" {{ 'selected' if filtro == 'TODOS' }}>Todos (incluindo vencidos)</option>
         </select>
     </div>
-    <div class="col-4 col-md-2">
-        <button class="btn btn-dark w-100" type="submit">Filtrar</button>
+    <div class="col-12 col-md-2 d-flex gap-2">
+        <button class="btn btn-dark flex-fill" type="submit">Filtrar</button>
+        {% if filtros_ativos %}
+            <a href="{{ url_for('pt_loto.index') }}" class="btn btn-outline-secondary" title="Limpar filtros">✕</a>
+        {% endif %}
     </div>
 </form>
 
 {% if filtro == '' and contagem.VENCIDO > 0 %}
 <div class="alert alert-danger py-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
     <span>🔴 <strong>{{ contagem.VENCIDO }}</strong> treinamento(s) vencido(s) oculto(s) desta lista.</span>
-    <a href="{{ url_for('pt_loto.index', busca=busca, condicao='VENCIDO') }}" class="btn btn-sm btn-danger">Ver vencidos</a>
+    <a href="{{ url_for('pt_loto.index', nome=nome, empresa=empresa, condicao='VENCIDO') }}" class="btn btn-sm btn-danger">Ver vencidos</a>
 </div>
 {% endif %}
 
@@ -66,6 +81,12 @@
     Exibindo apenas os <strong>vencidos</strong>. Use <strong>Revalidar</strong> para informar a nova data do treinamento.
 </div>
 {% endif %}
+
+<div class="text-muted small mb-2">
+    {{ itens|length }} registro(s) exibido(s)
+    {% if nome %} · nome contém "<strong>{{ nome }}</strong>"{% endif %}
+    {% if empresa %} · empresa: <strong>{{ '(sem empresa)' if empresa == SEM_EMPRESA else empresa }}</strong>{% endif %}
+</div>
 
 <div class="table-responsive">
 <table class="table table-bordered align-middle">
@@ -102,10 +123,10 @@
             <td>{{ i.r.instrutor or '' }}</td>
             <td class="text-nowrap">
                 {% if i.codigo != 'VALIDO' %}
-                <a href="{{ url_for('pt_loto.revalidar', id=i.r.id, condicao=filtro) }}" class="btn btn-sm btn-success">🔄 Revalidar</a>
+                <a href="{{ url_for('pt_loto.revalidar', id=i.r.id, nome=nome, empresa=empresa, condicao=filtro) }}" class="btn btn-sm btn-success">🔄 Revalidar</a>
                 {% endif %}
-                <a href="{{ url_for('pt_loto.editar', id=i.r.id, condicao=filtro) }}" class="btn btn-sm btn-warning">Editar</a>
-                <form method="POST" action="{{ url_for('pt_loto.excluir', id=i.r.id, condicao=filtro) }}" style="display:inline;"
+                <a href="{{ url_for('pt_loto.editar', id=i.r.id, nome=nome, empresa=empresa, condicao=filtro) }}" class="btn btn-sm btn-warning">Editar</a>
+                <form method="POST" action="{{ url_for('pt_loto.excluir', id=i.r.id, nome=nome, empresa=empresa, condicao=filtro) }}" style="display:inline;"
                       onsubmit="return confirm('Confirma exclusão?');">
                     <button type="submit" class="btn btn-sm btn-danger">Excluir</button>
                 </form>
