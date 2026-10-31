@@ -46,7 +46,6 @@ class ColaboradorCursoForm(FlaskForm):
 
 
 class TreinamentoPTLotoForm(FlaskForm):
-    numero = StringField("Número", validators=[Optional(), Length(max=20)])
     nome = StringField("Nome", validators=[DataRequired(), Length(max=150)])
     matricula = StringField("Matrícula/SSO", validators=[Optional(), Length(max=50)])
     empresa = StringField("Empresa", validators=[Optional(), Length(max=150)])
@@ -54,7 +53,6 @@ class TreinamentoPTLotoForm(FlaskForm):
         "Data do Treinamento", format="%Y-%m-%d", validators=[DataRequired()]
     )
     instrutor = StringField("Instrutor", validators=[Optional(), Length(max=150)])
-
 
 class ImportarExcelForm(FlaskForm):
     arquivo = FileField(
