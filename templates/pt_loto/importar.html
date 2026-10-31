@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>⬆ Importar treinamentos de PT/LOTO (Excel)</h2>
+
+<div class="alert alert-info">
+    <strong>Colunas esperadas</strong> (a ordem não importa; o título acima do cabeçalho é ignorado):<br>
+    NÚMERO · NOME · MATRÍCULA/SSO · EMPRESA · DATA DO TREINAMENTO · INSTRUTOR<br>
+    As colunas <em>Validade</em> e <em>Condição</em> são recalculadas pelo sistema.
+    Duplicados (mesma matrícula/SSO + mesma data) são ignorados.
+</div>
+
+<form method="POST" enctype="multipart/form-data">
+    {{ form.hidden_tag() }}
+    <div class="mb-3">
+        {{ form.arquivo.label }}
+        {{ form.arquivo(class="form-control", accept=".xlsx,.xlsm") }}
+        {% for erro in form.arquivo.errors %}<div class="text-danger small">{{ erro }}</div>{% endfor %}
+    </div>
+    <div class="form-check mb-3">
+        {{ form.substituir(class="form-check-input") }}
+        {{ form.substituir.label(class="form-check-label") }}
+        <div class="text-danger small">Atenção: apaga todos os registros atuais antes de importar.</div>
+    </div>
+    <button type="submit" class="btn btn-success">Importar</button>
+    <a href="{{ url_for('pt_loto.index') }}" class="btn btn-secondary">Cancelar</a>
+</form>
+
+{% if erros %}
+<div class="alert alert-warning mt-4">
+    <strong>Linhas ignoradas ({{ erros|length }}):</strong>
+    <ul class="mb-0">
+        {% for e in erros %}<li>{{ e }}</li>{% endfor %}
+    </ul>
+</div>
+{% endif %}
+{% endblock %}
