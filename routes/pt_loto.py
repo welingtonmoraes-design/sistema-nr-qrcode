@@ -1,8 +1,8 @@
+import unicodedata
 from datetime import date
 
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
-from sqlalchemy import or_
 
 from models import db, TreinamentoPTLoto
 from forms import TreinamentoPTLotoForm, ImportarExcelForm, RevalidarForm
@@ -10,29 +10,71 @@ from services.pt_loto_service import ler_planilha, gravar_linhas
 
 bp_pt_loto = Blueprint("pt_loto", __name__, url_prefix="/pt-loto")
 
+SEM_EMPRESA = "__SEM_EMPRESA__"
+
+
+def _norm(texto):
+    """Minusculo, sem acentos e sem espacos duplicados (para comparar textos)."""
+    texto = unicodedata.normalize("NFKD", str(texto or ""))
+    texto = "".join(c for c in texto if not unicodedata.combining(c))
+    return " ".join(texto.casefold().split())
+
+
+def _filtros():
+    """Filtros atuais vindos da URL (mantidos ao editar, revalidar e excluir)."""
+    return {
+        "nome": request.args.get("nome", "").strip(),
+        "empresa": request.args.get("empresa", "").strip(),
+        "condicao": request.args.get("condicao", "").strip(),
+    }
+
+
+def _voltar_lista():
+    return redirect(url_for("pt_loto.index", **_filtros()))
+
 
 @bp_pt_loto.route("/")
 @login_required
 def index():
-    busca = request.args.get("busca", "").strip()
-    # "" (padrao) = em vigor | VALIDO | REAVALIAR | VENCIDO | TODOS
-    filtro = request.args.get("condicao", "")
+    filtros = _filtros()
+    nome = filtros["nome"]
+    empresa = filtros["empresa"]
+    filtro = filtros["condicao"]   # "" (em vigor) | VALIDO | REAVALIAR | VENCIDO | TODOS
 
-    query = TreinamentoPTLoto.query
-    if busca:
-        like = f"%{busca}%"
-        query = query.filter(or_(
-            TreinamentoPTLoto.nome.ilike(like),
-            TreinamentoPTLoto.matricula.ilike(like),
-            TreinamentoPTLoto.empresa.ilike(like),
-            TreinamentoPTLoto.instrutor.ilike(like),
-        ))
+    todos = TreinamentoPTLoto.query.order_by(TreinamentoPTLoto.nome).all()
 
-    registros = query.order_by(TreinamentoPTLoto.nome).all()
+    # Lista de empresas para o filtro (sem duplicar por maiuscula/acento)
+    mapa_empresas = {}
+    for r in todos:
+        emp = (r.empresa or "").strip()
+        if emp:
+            mapa_empresas.setdefault(_norm(emp), emp)
+    lista_empresas = sorted(mapa_empresas.values(), key=_norm)
+    tem_sem_empresa = any(not (r.empresa or "").strip() for r in todos)
+
+    termos = _norm(nome).split()
+    empresa_norm = _norm(empresa)
 
     contagem = {"VALIDO": 0, "REAVALIAR": 0, "VENCIDO": 0}
     itens = []
-    for r in registros:
+    total = 0
+
+    for r in todos:
+        # --- filtro por nome (parcial ou completo, todas as palavras) ---
+        if termos:
+            nome_norm = _norm(r.nome)
+            if not all(t in nome_norm for t in termos):
+                continue
+
+        # --- filtro por empresa ---
+        if empresa:
+            if empresa == SEM_EMPRESA:
+                if (r.empresa or "").strip():
+                    continue
+            elif _norm(r.empresa) != empresa_norm:
+                continue
+
+        total += 1
         codigo, texto, dias = r.condicao()
         contagem[codigo] += 1
 
@@ -48,9 +90,12 @@ def index():
 
     return render_template(
         "pt_loto/index.html",
-        itens=itens, contagem=contagem, total=len(registros),
+        itens=itens, contagem=contagem, total=total,
         em_vigor=contagem["VALIDO"] + contagem["REAVALIAR"],
-        busca=busca, filtro=filtro
+        nome=nome, empresa=empresa, filtro=filtro,
+        lista_empresas=lista_empresas, tem_sem_empresa=tem_sem_empresa,
+        SEM_EMPRESA=SEM_EMPRESA,
+        filtros_ativos=bool(nome or empresa or filtro),
     )
 
 
@@ -71,7 +116,7 @@ def novo():
         db.session.commit()
         flash("Registro cadastrado!", "success")
         return redirect(url_for("pt_loto.index"))
-    return render_template("pt_loto/form.html", form=form)
+    return render_template("pt_loto/form.html", form=form, filtros=_filtros())
 
 
 @bp_pt_loto.route("/editar/<int:id>", methods=["GET", "POST"])
@@ -88,8 +133,8 @@ def editar(id):
         registro.instrutor = form.instrutor.data
         db.session.commit()
         flash("Registro atualizado!", "success")
-        return redirect(url_for("pt_loto.index", condicao=request.args.get("condicao", "")))
-    return render_template("pt_loto/form.html", form=form, registro=registro)
+        return _voltar_lista()
+    return render_template("pt_loto/form.html", form=form, registro=registro, filtros=_filtros())
 
 
 @bp_pt_loto.route("/revalidar/<int:id>", methods=["GET", "POST"])
@@ -97,7 +142,6 @@ def editar(id):
 def revalidar(id):
     """Atualiza a data do treinamento (e opcionalmente o instrutor) para revalidar."""
     registro = db.get_or_404(TreinamentoPTLoto, id)
-    condicao_origem = request.args.get("condicao", "")
 
     form = RevalidarForm()
     if form.validate_on_submit():
@@ -110,7 +154,7 @@ def revalidar(id):
             f"Nova validade: {registro.data_validade.strftime('%d/%m/%Y')}.",
             "success"
         )
-        return redirect(url_for("pt_loto.index", condicao=condicao_origem))
+        return _voltar_lista()
 
     if not form.is_submitted():
         form.data_treinamento.data = date.today()
@@ -118,7 +162,7 @@ def revalidar(id):
 
     return render_template(
         "pt_loto/revalidar.html",
-        form=form, registro=registro, condicao_origem=condicao_origem
+        form=form, registro=registro, filtros=_filtros()
     )
 
 
@@ -129,7 +173,7 @@ def excluir(id):
     db.session.delete(registro)
     db.session.commit()
     flash("Registro excluído.", "warning")
-    return redirect(url_for("pt_loto.index", condicao=request.args.get("condicao", "")))
+    return _voltar_lista()
 
 
 @bp_pt_loto.route("/importar", methods=["GET", "POST"])
