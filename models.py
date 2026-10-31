@@ -120,7 +120,6 @@ class TreinamentoPTLoto(db.Model):
     VALIDADE_MESES = 12
 
     id = db.Column(db.Integer, primary_key=True)
-    numero = db.Column(db.String(20))
     nome = db.Column(db.String(150), nullable=False)
     matricula = db.Column(db.String(50))   # Matricula/SSO
     empresa = db.Column(db.String(150))
@@ -129,14 +128,21 @@ class TreinamentoPTLoto(db.Model):
 
     @property
     def data_validade(self):
-        return adicionar_meses(self.data_treinamento, self.VALIDADE_MESES)
+        try:
+            return adicionar_meses(self.data_treinamento, self.VALIDADE_MESES)
+        except (ValueError, OverflowError):
+            return None
 
     def condicao(self):
         """
         Retorna (codigo, texto, dias_restantes).
         codigo: VALIDO (verde) | REAVALIAR (amarelo) | VENCIDO (vermelho)
+        Data invalida e tratada como VENCIDO para poder ser corrigida.
         """
-        dias = (self.data_validade - date.today()).days
+        validade = self.data_validade
+        if validade is None:
+            return "VENCIDO", "Data inválida", -99999
+        dias = (validade - date.today()).days
         if dias < 0:
             return "VENCIDO", "Vencido", dias
         if dias <= 30:
