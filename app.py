@@ -3,6 +3,8 @@ from flask import Flask, render_template, session, request
 from flask_login import LoginManager, login_required, current_user
 from models import db, Usuario, ColaboradorCurso, Colaborador
 from services.validade_service import listar_cursos_criticos
+from services.pt_loto_service import buscar_pt_colaborador
+
 from modulos import MODULOS
 
 app = Flask(__name__)
@@ -81,14 +83,29 @@ def verificar_colaborador(cpf):
     NAO ALTERAR este caminho: QR Codes ja impressos dependem dele.
     """
     colaborador = Colaborador.query.filter_by(cpf=cpf).first_or_404()
-    cursos_info = [
-        {"curso": c, "status": c.status()[0], "dias_restantes": c.status()[1]}
-        for c in colaborador.cursos
-    ]
-    return render_template(
-        "verificacao_publica.html", colaborador=colaborador, cursos_info=cursos_info
-    )
 
+    cursos_info = []
+    for c in colaborador.cursos:
+        status, dias = c.status()
+        cursos_info.append({"curso": c, "status": status, "dias_restantes": dias})
+
+    pt_info = None
+    pt = buscar_pt_colaborador(colaborador)
+    if pt:
+        codigo, texto, dias = pt.condicao()
+        pt_info = {
+            "registro": pt,
+            "codigo": codigo,      # VALIDO | REAVALIAR | VENCIDO
+            "texto": texto,
+            "dias": dias,
+        }
+
+    return render_template(
+        "verificacao_publica.html",
+        colaborador=colaborador,
+        cursos_info=cursos_info,
+        pt_info=pt_info
+    )
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
