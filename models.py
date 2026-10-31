@@ -1,8 +1,18 @@
+import calendar
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from datetime import date
 
 db = SQLAlchemy()
+
+
+def adicionar_meses(data, meses):
+    """Soma meses a uma data mantendo o dia (ajusta para o ultimo dia do mes se necessario)."""
+    total = data.year * 12 + (data.month - 1) + meses
+    ano, mes = divmod(total, 12)
+    mes += 1
+    dia = min(data.day, calendar.monthrange(ano, mes)[1])
+    return date(ano, mes, dia)
 
 
 class Colaborador(db.Model):
@@ -43,8 +53,8 @@ class CatalogoNR(db.Model):
     __tablename__ = "catalogo_nr"
 
     id = db.Column(db.Integer, primary_key=True)
-    nome_curso = db.Column(db.String(100), nullable=False)   # ex: NR-35
-    validade_meses = db.Column(db.Integer, nullable=True)    # None = sem validade
+    nome_curso = db.Column(db.String(100), nullable=False)
+    validade_meses = db.Column(db.Integer, nullable=True)  # None = sem validade
     descricao = db.Column(db.String(255))
 
     def __repr__(self):
@@ -67,23 +77,11 @@ class ColaboradorCurso(db.Model):
     catalogo = db.relationship("CatalogoNR", lazy="joined")
 
     def calcular_vencimento(self, catalogo=None):
-        """
-        Calcula a data de vencimento somando os meses de validade
-        a data de realizacao do curso.
-
-        Se o catalogo nao tiver validade definida (validade_meses = None),
-        o curso e considerado "sem vencimento" (data_vencimento = None).
-
-        Pode receber o objeto `catalogo` diretamente (util quando o
-        registro ainda nao esta persistido na sessao do SQLAlchemy,
-        como em scripts de seed/importacao em massa).
-        """
         cat = catalogo or self.catalogo
         if cat is None:
             raise ValueError(
                 "Nao foi possivel determinar o catalogo NR. "
-                "Informe o parametro 'catalogo' ou garanta que o "
-                "registro esteja associado a uma sessao valida."
+                "Informe o parametro 'catalogo'."
             )
 
         if cat.validade_meses is None:
@@ -91,24 +89,14 @@ class ColaboradorCurso(db.Model):
             return None
 
         meses = cat.validade_meses
-
         ano = self.data_realizado.year + (self.data_realizado.month - 1 + meses) // 12
         mes = (self.data_realizado.month - 1 + meses) % 12 + 1
-        dia = min(self.data_realizado.day, 28)  # evita erro em meses com menos dias
+        dia = min(self.data_realizado.day, 28)
 
         self.data_vencimento = self.data_realizado.replace(year=ano, month=mes, day=dia)
         return self.data_vencimento
 
     def status(self):
-        """
-        Retorna (status, dias_restantes) com base na data de hoje.
-
-        Status possiveis:
-            SEM_VENCIMENTO -> curso nao possui validade (nunca vence)
-            VALIDO         -> dentro do prazo (mais de 30 dias para vencer)
-            A_VENCER       -> faltam 30 dias ou menos para vencer
-            VENCIDO        -> prazo ja expirou
-        """
         if self.data_vencimento is None:
             return "SEM_VENCIMENTO", None
 
@@ -123,3 +111,37 @@ class ColaboradorCurso(db.Model):
 
     def __repr__(self):
         return f"<ColaboradorCurso colaborador_id={self.colaborador_id} catalogo_nr_id={self.catalogo_nr_id}>"
+
+
+class TreinamentoPTLoto(db.Model):
+    """Treinamentos de PT e LOTO (validade fixa de 12 meses)."""
+    __tablename__ = "treinamento_pt_loto"
+
+    VALIDADE_MESES = 12
+
+    id = db.Column(db.Integer, primary_key=True)
+    numero = db.Column(db.String(20))
+    nome = db.Column(db.String(150), nullable=False)
+    matricula = db.Column(db.String(50))   # Matricula/SSO
+    empresa = db.Column(db.String(150))
+    data_treinamento = db.Column(db.Date, nullable=False)
+    instrutor = db.Column(db.String(150))
+
+    @property
+    def data_validade(self):
+        return adicionar_meses(self.data_treinamento, self.VALIDADE_MESES)
+
+    def condicao(self):
+        """
+        Retorna (codigo, texto, dias_restantes).
+        codigo: VALIDO (verde) | REAVALIAR (amarelo) | VENCIDO (vermelho)
+        """
+        dias = (self.data_validade - date.today()).days
+        if dias < 0:
+            return "VENCIDO", "Vencido", dias
+        if dias <= 30:
+            return "REAVALIAR", "Reavaliar em 30 dias", dias
+        return "VALIDO", "Dentro da validade", dias
+
+    def __repr__(self):
+        return f"<TreinamentoPTLoto {self.nome}>"
