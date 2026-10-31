@@ -21,16 +21,18 @@ MODULOS = [
             {"nome": "Gerar QR Codes", "endpoint": "cursos.gerar_qrcodes"},
         ],
     },
-    {
+        {
         "id": "pt_loto",
         "nome": "Validade PT e LOTO",
-        "descricao": "Controle de validade de Permissões de Trabalho e bloqueios LOTO.",
+        "descricao": "Controle de validade dos treinamentos de PT e LOTO (12 meses).",
         "icone": "🔒",
         "endpoint": "pt_loto.index",
         "blueprints": ["pt_loto"],
         "ativo": True,
         "submenu": [
-            {"nome": "Painel", "endpoint": "pt_loto.index"},
+            {"nome": "Treinamentos", "endpoint": "pt_loto.index"},
+            {"nome": "Novo registro", "endpoint": "pt_loto.novo"},
+            {"nome": "Importar Excel", "endpoint": "pt_loto.importar"},
         ],
     },
     # --- Exemplos de modulos futuros (nomes ilustrativos, ajuste como quiser) ---
