@@ -58,8 +58,6 @@ def _achar_cabecalho(ws):
             for i, c in enumerate(normalizados):
                 if "INSTRUTOR" in c:
                     colunas.setdefault("instrutor", i)
-                elif c.startswith("NUM"):
-                    colunas.setdefault("numero", i)
                 elif c.startswith("NOME"):
                     colunas.setdefault("nome", i)
                 elif c.startswith("MATRICULA") or c.startswith("SSO"):
@@ -76,7 +74,7 @@ def _achar_cabecalho(ws):
 def ler_planilha(stream):
     """
     Le a planilha (procura o cabecalho em todas as abas).
-    Retorna (linhas, erros). Cada linha traz o numero da linha no Excel.
+    Retorna (linhas, erros). A coluna NUMERO, se existir, e ignorada.
     """
     wb = load_workbook(stream, data_only=True)
 
@@ -126,7 +124,6 @@ def ler_planilha(stream):
 
         linhas.append({
             "linha": num_linha,
-            "numero": _texto(pegar(row, "numero")),
             "nome": nome,
             "matricula": _texto(pegar(row, "matricula")),
             "empresa": _texto(pegar(row, "empresa")),
