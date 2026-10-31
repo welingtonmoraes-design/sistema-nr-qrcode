@@ -1,31 +1,43 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Painel de Alertas de Vencimento</h2>
+<div class="text-center mb-4">
+    <h2>Sistema de Controle de EHS</h2>
+    <p class="text-muted">Environment, Health &amp; Safety — selecione um módulo</p>
+</div>
 
 {% if alertas %}
-    <table class="table table-striped mt-3">
-        <thead>
-            <tr>
-                <th>Colaborador</th>
-                <th>Curso</th>
-                <th>Vencimento</th>
-                <th>Status</th>
-                <th>Dias Restantes</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for a in alertas %}
-            <tr class="{{ 'table-danger' if a.status == 'VENCIDO' else 'table-warning' }}">
-                <td>{{ a.colaborador }}</td>
-                <td>{{ a.curso }}</td>
-                <td>{{ a.vencimento.strftime('%d/%m/%Y') }}</td>
-                <td>{{ a.status }}</td>
-                <td>{{ a.dias_restantes }}</td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
-{% else %}
-    <p class="text-success mt-3">✅ Nenhum curso vencido ou próximo do vencimento.</p>
+<div class="alert alert-warning">
+    ⚠️ Existem <strong>{{ alertas|length }}</strong> curso(s) NR vencido(s) ou a vencer em até 30 dias.
+    <a href="{{ url_for('nrs.painel') }}" class="alert-link">Ver detalhes</a>
+</div>
 {% endif %}
+
+<div class="row g-4">
+    {% for m in MODULOS %}
+    <div class="col-12 col-md-6 col-lg-4">
+        {% if m.ativo %}
+        <a href="{{ url_for(m.endpoint) }}" class="text-decoration-none">
+            <div class="card h-100 shadow-sm modulo-card">
+                <div class="card-body text-center">
+                    <div class="display-4">{{ m.icone }}</div>
+                    <h5 class="card-title text-dark mt-2">{{ m.nome }}</h5>
+                    <p class="card-text text-muted">{{ m.descricao }}</p>
+                    {% if m.id == 'nrs' and alertas %}
+                        <span class="badge bg-danger">{{ alertas|length }} alerta(s)</span>
+                    {% endif %}
+                </div>
+            </div>
+        </a>
+        {% else %}
+        <div class="card h-100 shadow-sm modulo-desativado">
+            <div class="card-body text-center">
+                <div class="display-4">{{ m.icone }}</div>
+                <h5 class="card-title text-dark mt-2">{{ m.nome }}</h5>
+                <span class="badge bg-secondary">Em breve</span>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
 {% endblock %}

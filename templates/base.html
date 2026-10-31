@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema NR - Gerador de QR Code</title>
+    <title>Sistema de Controle de EHS</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='assets/logogev.png') }}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <style>
@@ -29,29 +29,74 @@
             margin-right: 8px;
             vertical-align: middle;
         }
+
+        .modulo-card {
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .modulo-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2) !important;
+        }
+        .modulo-desativado {
+            opacity: 0.55;
+        }
     </style>
 </head>
 <body>
+
+<!-- Menu principal (global) -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container">
         <a class="navbar-brand d-flex align-items-center" href="{{ url_for('home') }}">
             <img src="{{ url_for('static', filename='assets/logogev.png') }}" alt="Logo">
-            Sistema NR
+            Sistema de Controle de EHS
         </a>
-        <div>
-            <a class="btn btn-outline-light btn-sm" href="{{ url_for('colaboradores.listar') }}">Colaboradores</a>
-            <a class="btn btn-outline-light btn-sm" href="{{ url_for('catalogo_nr.listar') }}">Catálogo NR</a>
-            <a class="btn btn-outline-light btn-sm" href="{{ url_for('cursos.listar') }}">Cursos Realizados</a>
-            <a class="btn btn-outline-light btn-sm" href="{{ url_for('cursos.gerar_qrcodes') }}">Gerar QR Codes</a>
-            {% if current_user.is_authenticated and current_user.perfil == 'admin' %}
-                <a class="btn btn-outline-light btn-sm" href="{{ url_for('usuarios.listar') }}">Usuários</a>
-            {% endif %}
-            <a class="btn btn-outline-warning btn-sm" href="{{ url_for('auth.logout') }}">Sair</a>
+
+        {% if current_user.is_authenticated %}
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuPrincipal">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="menuPrincipal">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if request.endpoint == 'home' else '' }}" href="{{ url_for('home') }}">Início</a>
+                </li>
+                {% for m in MODULOS %}
+                    {% if m.ativo %}
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if modulo_atual and modulo_atual.id == m.id else '' }}"
+                           href="{{ url_for(m.endpoint) }}">{{ m.nome }}</a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+
+            <div class="d-flex gap-2">
+                {% if current_user.perfil == 'admin' %}
+                    <a class="btn btn-outline-light btn-sm" href="{{ url_for('usuarios.listar') }}">Usuários</a>
+                {% endif %}
+                <a class="btn btn-outline-warning btn-sm" href="{{ url_for('auth.logout') }}">Sair</a>
+            </div>
         </div>
+        {% endif %}
     </div>
 </nav>
 
-<div class="container mt-4">
+<!-- Submenu do modulo atual -->
+{% if current_user.is_authenticated and modulo_atual and modulo_atual.submenu %}
+<div class="bg-secondary">
+    <div class="container py-2 d-flex flex-wrap gap-2 align-items-center">
+        <span class="text-white fw-bold me-2">{{ modulo_atual.icone }} {{ modulo_atual.nome }}:</span>
+        {% for s in modulo_atual.submenu %}
+            <a class="btn btn-sm {{ 'btn-light' if request.endpoint == s.endpoint else 'btn-outline-light' }}"
+               href="{{ url_for(s.endpoint) }}">{{ s.nome }}</a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<div class="container mt-4 mb-4">
     <div class="conteudo-wrapper">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% for category, message in messages %}
@@ -62,5 +107,7 @@
         {% block content %}{% endblock %}
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
