@@ -181,21 +181,23 @@ def excluir(id):
 def importar():
     form = ImportarExcelForm()
     erros = []
+    duplicados = []
     if form.validate_on_submit():
         try:
             linhas, erros = ler_planilha(form.arquivo.data.stream)
             inseridos, duplicados = gravar_linhas(linhas, substituir=form.substituir.data)
+            total = len(linhas) + len(erros)
             flash(
-                f"Importação concluída: {inseridos} registro(s) inserido(s), "
-                f"{duplicados} duplicado(s) ignorado(s), {len(erros)} linha(s) com erro.",
+                f"{total} linha(s) com dados na planilha: {inseridos} inserida(s), "
+                f"{len(duplicados)} duplicada(s) ignorada(s), {len(erros)} com erro.",
                 "success" if inseridos else "warning"
             )
-            if not erros:
+            if not erros and not duplicados:
                 return redirect(url_for("pt_loto.index"))
         except Exception as e:
             db.session.rollback()
             flash(f"Não foi possível importar: {e}", "danger")
-    return render_template("pt_loto/importar.html", form=form, erros=erros)
+    return render_template("pt_loto/importar.html", form=form, erros=erros, duplicados=duplicados)
 
 
 @bp_pt_loto.route("/criar-tabelas")
