@@ -12,7 +12,10 @@
 <div class="row g-2 mb-3">
     <div class="col-6 col-md-3">
         <a class="text-decoration-none" href="{{ url_for('pt_loto.index', busca=busca) }}">
-            <div class="p-2 rounded bg-light border text-center text-dark">Total<br><strong>{{ total }}</strong></div>
+            <div class="p-2 rounded bg-light border text-center text-dark">
+                Em vigor<br><strong>{{ em_vigor }}</strong>
+                <div class="small text-muted">de {{ total }} no total</div>
+            </div>
         </a>
     </div>
     <div class="col-6 col-md-3">
@@ -39,16 +42,30 @@
     </div>
     <div class="col-8 col-md-4">
         <select name="condicao" class="form-select">
-            <option value="">Todas as condições</option>
+            <option value="" {{ 'selected' if filtro == '' }}>Em vigor (padrão)</option>
             <option value="VALIDO" {{ 'selected' if filtro == 'VALIDO' }}>Dentro da validade</option>
             <option value="REAVALIAR" {{ 'selected' if filtro == 'REAVALIAR' }}>Reavaliar em 30 dias</option>
-            <option value="VENCIDO" {{ 'selected' if filtro == 'VENCIDO' }}>Vencido</option>
+            <option value="VENCIDO" {{ 'selected' if filtro == 'VENCIDO' }}>Vencidos</option>
+            <option value="TODOS" {{ 'selected' if filtro == 'TODOS' }}>Todos (incluindo vencidos)</option>
         </select>
     </div>
     <div class="col-4 col-md-2">
         <button class="btn btn-dark w-100" type="submit">Filtrar</button>
     </div>
 </form>
+
+{% if filtro == '' and contagem.VENCIDO > 0 %}
+<div class="alert alert-danger py-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <span>🔴 <strong>{{ contagem.VENCIDO }}</strong> treinamento(s) vencido(s) oculto(s) desta lista.</span>
+    <a href="{{ url_for('pt_loto.index', busca=busca, condicao='VENCIDO') }}" class="btn btn-sm btn-danger">Ver vencidos</a>
+</div>
+{% endif %}
+
+{% if filtro == 'VENCIDO' %}
+<div class="alert alert-info py-2">
+    Exibindo apenas os <strong>vencidos</strong>. Use <strong>Revalidar</strong> para informar a nova data do treinamento.
+</div>
+{% endif %}
 
 <div class="table-responsive">
 <table class="table table-bordered align-middle">
@@ -84,8 +101,11 @@
             </td>
             <td>{{ i.r.instrutor or '' }}</td>
             <td class="text-nowrap">
-                <a href="{{ url_for('pt_loto.editar', id=i.r.id) }}" class="btn btn-sm btn-warning">Editar</a>
-                <form method="POST" action="{{ url_for('pt_loto.excluir', id=i.r.id) }}" style="display:inline;"
+                {% if i.codigo != 'VALIDO' %}
+                <a href="{{ url_for('pt_loto.revalidar', id=i.r.id, condicao=filtro) }}" class="btn btn-sm btn-success">🔄 Revalidar</a>
+                {% endif %}
+                <a href="{{ url_for('pt_loto.editar', id=i.r.id, condicao=filtro) }}" class="btn btn-sm btn-warning">Editar</a>
+                <form method="POST" action="{{ url_for('pt_loto.excluir', id=i.r.id, condicao=filtro) }}" style="display:inline;"
                       onsubmit="return confirm('Confirma exclusão?');">
                     <button type="submit" class="btn btn-sm btn-danger">Excluir</button>
                 </form>
