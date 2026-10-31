@@ -62,3 +62,9 @@ class ImportarExcelForm(FlaskForm):
         validators=[FileRequired(), FileAllowed(["xlsx", "xlsm"], "Envie um arquivo .xlsx")]
     )
     substituir = BooleanField("Substituir todos os registros existentes")
+
+class RevalidarForm(FlaskForm):
+    data_treinamento = DateField(
+        "Nova data do treinamento", format="%Y-%m-%d", validators=[DataRequired()]
+    )
+    instrutor = StringField("Instrutor", validators=[Optional(), Length(max=150)])
