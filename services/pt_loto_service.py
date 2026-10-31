@@ -8,7 +8,7 @@ from models import db, TreinamentoPTLoto
 
 
 def _norm(valor):
-    """Normaliza cabecalho: sem acentos, maiusculo, sem espacos extras."""
+    """Normaliza texto: sem acentos, maiusculo, sem espacos extras."""
     if valor is None:
         return ""
     texto = unicodedata.normalize("NFKD", str(valor))
@@ -38,8 +38,9 @@ def _data(valor):
             return from_excel(valor).date()
         except Exception:
             return None
-    texto = str(valor).strip()
-    for formato in ("%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y", "%d/%m/%y"):
+    texto = str(valor).strip().split(" ")[0]   # remove hora, se houver
+    for formato in ("%d/%m/%Y", "%d/%m/%y", "%Y-%m-%d", "%d-%m-%Y",
+                    "%d-%m-%y", "%d.%m.%Y", "%d.%m.%y"):
         try:
             return datetime.strptime(texto, formato).date()
         except ValueError:
@@ -47,41 +48,51 @@ def _data(valor):
     return None
 
 
-def ler_planilha(stream):
-    """
-    Le a planilha e devolve (linhas, erros).
-    Localiza sozinho a linha de cabecalho nas 15 primeiras linhas.
-    """
-    wb = load_workbook(stream, data_only=True)
-    ws = wb.active
-
-    linha_cab = None
-    colunas = {}
-
+def _achar_cabecalho(ws):
+    """Procura a linha de cabecalho nas 15 primeiras linhas. Retorna (linha, colunas)."""
     for idx, row in enumerate(ws.iter_rows(min_row=1, max_row=15, values_only=True), start=1):
         normalizados = [_norm(c) for c in row]
         if any(c.startswith("NOME") for c in normalizados) and \
            any(c.startswith("DATA") for c in normalizados):
-            linha_cab = idx
+            colunas = {}
             for i, c in enumerate(normalizados):
-                if c.startswith("NUM") and "numero" not in colunas:
-                    colunas["numero"] = i
-                elif c.startswith("NOME") and "nome" not in colunas:
-                    colunas["nome"] = i
-                elif c.startswith("MATRICULA") and "matricula" not in colunas:
-                    colunas["matricula"] = i
-                elif c.startswith("EMPRESA") and "empresa" not in colunas:
-                    colunas["empresa"] = i
-                elif c.startswith("DATA") and "data" not in colunas:
-                    colunas["data"] = i
-                elif c.startswith("INSTRUTOR") and "instrutor" not in colunas:
-                    colunas["instrutor"] = i
+                if "INSTRUTOR" in c:
+                    colunas.setdefault("instrutor", i)
+                elif c.startswith("NUM"):
+                    colunas.setdefault("numero", i)
+                elif c.startswith("NOME"):
+                    colunas.setdefault("nome", i)
+                elif c.startswith("MATRICULA") or c.startswith("SSO"):
+                    colunas.setdefault("matricula", i)
+                elif c.startswith("EMPRESA"):
+                    colunas.setdefault("empresa", i)
+                elif c.startswith("DATA") and "VALID" not in c:
+                    colunas.setdefault("data", i)
+            if "nome" in colunas and "data" in colunas:
+                return idx, colunas
+    return None, {}
+
+
+def ler_planilha(stream):
+    """
+    Le a planilha (procura o cabecalho em todas as abas).
+    Retorna (linhas, erros). Cada linha traz o numero da linha no Excel.
+    """
+    wb = load_workbook(stream, data_only=True)
+
+    ws = None
+    linha_cab = None
+    colunas = {}
+    for planilha in wb.worksheets:
+        linha_cab, colunas = _achar_cabecalho(planilha)
+        if linha_cab:
+            ws = planilha
             break
 
-    if linha_cab is None or "nome" not in colunas or "data" not in colunas:
+    if ws is None:
         raise ValueError(
-            "Cabecalho nao encontrado. A planilha precisa ter as colunas "
-            "NOME e DATA DO TREINAMENTO."
+            "Cabecalho nao encontrado em nenhuma aba. A planilha precisa ter "
+            "as colunas NOME e DATA DO TREINAMENTO."
         )
 
     def pegar(row, chave):
@@ -104,12 +115,17 @@ def ler_planilha(stream):
             erros.append(f"Linha {num_linha}: nome vazio.")
             continue
 
-        data_trein = _data(pegar(row, "data"))
+        bruto = pegar(row, "data")
+        data_trein = _data(bruto)
         if data_trein is None:
-            erros.append(f"Linha {num_linha} ({nome}): data do treinamento invalida.")
+            erros.append(
+                f"Linha {num_linha} ({nome}): data do treinamento invalida "
+                f"(valor lido: '{_texto(bruto)}')."
+            )
             continue
 
         linhas.append({
+            "linha": num_linha,
             "numero": _texto(pegar(row, "numero")),
             "nome": nome,
             "matricula": _texto(pegar(row, "matricula")),
@@ -121,30 +137,48 @@ def ler_planilha(stream):
     return linhas, erros
 
 
+def _chave(nome, matricula, data):
+    return (_norm(nome), (matricula or "").strip().upper(), data)
+
+
 def gravar_linhas(linhas, substituir=False):
     """
-    Grava as linhas no banco. Retorna (inseridos, ignorados_duplicados).
-    Duplicado = mesma matricula/SSO + mesma data de treinamento.
+    Grava as linhas no banco. Retorna (inseridos, duplicados).
+    Duplicado = mesmo nome + mesma matricula/SSO + mesma data de treinamento.
+    'duplicados' e uma lista de textos explicando cada linha ignorada.
     """
     if substituir:
         TreinamentoPTLoto.query.delete()
-        existentes = set()
+        no_banco = set()
     else:
-        existentes = {
-            ((r.matricula or "").upper(), r.data_treinamento)
+        no_banco = {
+            _chave(r.nome, r.matricula, r.data_treinamento)
             for r in TreinamentoPTLoto.query.all()
         }
 
+    na_planilha = set()
     inseridos = 0
-    duplicados = 0
+    duplicados = []
 
     for l in linhas:
-        chave = (l["matricula"].upper(), l["data_treinamento"])
-        if l["matricula"] and chave in existentes:
-            duplicados += 1
+        dados = {k: v for k, v in l.items() if k != "linha"}
+        chave = _chave(l["nome"], l["matricula"], l["data_treinamento"])
+
+        if chave in no_banco:
+            duplicados.append(
+                f"Linha {l['linha']} ({l['nome']}, {l['data_treinamento'].strftime('%d/%m/%Y')}): "
+                f"ja existe no sistema."
+            )
             continue
-        existentes.add(chave)
-        db.session.add(TreinamentoPTLoto(**l))
+        if chave in na_planilha:
+            duplicados.append(
+                f"Linha {l['linha']} ({l['nome']}, {l['data_treinamento'].strftime('%d/%m/%Y')}): "
+                f"repetida na planilha."
+            )
+            continue
+
+        na_planilha.add(chave)
+        db.session.add(TreinamentoPTLoto(**dados))
         inseridos += 1
 
     db.session.commit()
