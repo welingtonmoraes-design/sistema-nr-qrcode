@@ -1,5 +1,20 @@
 {% extends "base.html" %}
 {% block content %}
+
+{# Cabecalho clicavel para ordenar #}
+{% macro th(chave, titulo, ordem, direcao, nome, empresa, filtro) %}
+    {% set ativo = (ordem == chave) %}
+    {% set prox = 'desc' if (ativo and direcao == 'asc') else 'asc' %}
+    <th>
+        <a href="{{ url_for('pt_loto.index', nome=nome, empresa=empresa, condicao=filtro, ordem=chave, direcao=prox) }}"
+           class="text-white text-decoration-none text-nowrap"
+           title="Ordenar por {{ titulo }}">
+            {{ titulo }}
+            {% if ativo %}{{ '▲' if direcao == 'asc' else '▼' }}{% else %}<span style="opacity:.5;">⇅</span>{% endif %}
+        </a>
+    </th>
+{% endmacro %}
+
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <h2 class="mb-0">🔒 Validade PT e LOTO</h2>
     <div class="d-flex gap-2">
@@ -8,10 +23,10 @@
     </div>
 </div>
 
-<!-- Resumo (clicável: filtra pela condição, mantendo nome e empresa) -->
+<!-- Resumo (clicável: filtra pela condição, mantendo nome, empresa e ordem) -->
 <div class="row g-2 mb-3">
     <div class="col-6 col-md-3">
-        <a class="text-decoration-none" href="{{ url_for('pt_loto.index', nome=nome, empresa=empresa) }}">
+        <a class="text-decoration-none" href="{{ url_for('pt_loto.index', nome=nome, empresa=empresa, ordem=ordem, direcao=direcao) }}">
             <div class="p-2 rounded bg-light border text-center text-dark">
                 Em vigor<br><strong>{{ em_vigor }}</strong>
                 <div class="small text-muted">de {{ total }} no total</div>
@@ -19,17 +34,17 @@
         </a>
     </div>
     <div class="col-6 col-md-3">
-        <a class="text-decoration-none" href="{{ url_for('pt_loto.index', nome=nome, empresa=empresa, condicao='VALIDO') }}">
+        <a class="text-decoration-none" href="{{ url_for('pt_loto.index', nome=nome, empresa=empresa, condicao='VALIDO', ordem=ordem, direcao=direcao) }}">
             <div class="p-2 rounded text-center text-white" style="background:#198754;">Dentro da validade<br><strong>{{ contagem.VALIDO }}</strong></div>
         </a>
     </div>
     <div class="col-6 col-md-3">
-        <a class="text-decoration-none" href="{{ url_for('pt_loto.index', nome=nome, empresa=empresa, condicao='REAVALIAR') }}">
+        <a class="text-decoration-none" href="{{ url_for('pt_loto.index', nome=nome, empresa=empresa, condicao='REAVALIAR', ordem=ordem, direcao=direcao) }}">
             <div class="p-2 rounded text-center text-dark" style="background:#ffc107;">Reavaliar em 30 dias<br><strong>{{ contagem.REAVALIAR }}</strong></div>
         </a>
     </div>
     <div class="col-6 col-md-3">
-        <a class="text-decoration-none" href="{{ url_for('pt_loto.index', nome=nome, empresa=empresa, condicao='VENCIDO') }}">
+        <a class="text-decoration-none" href="{{ url_for('pt_loto.index', nome=nome, empresa=empresa, condicao='VENCIDO', ordem=ordem, direcao=direcao) }}">
             <div class="p-2 rounded text-center text-white" style="background:#dc3545;">Vencidos<br><strong>{{ contagem.VENCIDO }}</strong></div>
         </a>
     </div>
@@ -37,6 +52,8 @@
 
 <!-- Filtros -->
 <form method="GET" class="row g-2 mb-3">
+    <input type="hidden" name="ordem" value="{{ ordem }}">
+    <input type="hidden" name="direcao" value="{{ direcao }}">
     <div class="col-12 col-md-4">
         <input type="text" name="nome" value="{{ nome }}" class="form-control"
                placeholder="🔍 Nome (parcial ou completo)">
@@ -72,7 +89,7 @@
 {% if filtro == '' and contagem.VENCIDO > 0 %}
 <div class="alert alert-danger py-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
     <span>🔴 <strong>{{ contagem.VENCIDO }}</strong> treinamento(s) vencido(s) oculto(s) desta lista.</span>
-    <a href="{{ url_for('pt_loto.index', nome=nome, empresa=empresa, condicao='VENCIDO') }}" class="btn btn-sm btn-danger">Ver vencidos</a>
+    <a href="{{ url_for('pt_loto.index', nome=nome, empresa=empresa, condicao='VENCIDO', ordem=ordem, direcao=direcao) }}" class="btn btn-sm btn-danger">Ver vencidos</a>
 </div>
 {% endif %}
 
@@ -86,20 +103,20 @@
     {{ itens|length }} registro(s) exibido(s)
     {% if nome %} · nome contém "<strong>{{ nome }}</strong>"{% endif %}
     {% if empresa %} · empresa: <strong>{{ '(sem empresa)' if empresa == SEM_EMPRESA else empresa }}</strong>{% endif %}
+    · <em>clique nos títulos das colunas para ordenar</em>
 </div>
 
 <div class="table-responsive">
 <table class="table table-bordered align-middle">
     <thead class="table-dark">
         <tr>
-            <th>Número</th>
-            <th>Nome</th>
-            <th>Matrícula/SSO</th>
-            <th>Empresa</th>
-            <th>Data do Treinamento</th>
-            <th>Validade do Treinamento</th>
-            <th>Condição</th>
-            <th>Instrutor</th>
+            {{ th('nome', 'Nome', ordem, direcao, nome, empresa, filtro) }}
+            {{ th('matricula', 'Matrícula/SSO', ordem, direcao, nome, empresa, filtro) }}
+            {{ th('empresa', 'Empresa', ordem, direcao, nome, empresa, filtro) }}
+            {{ th('data_treinamento', 'Data do Treinamento', ordem, direcao, nome, empresa, filtro) }}
+            {{ th('validade', 'Validade do Treinamento', ordem, direcao, nome, empresa, filtro) }}
+            {{ th('condicao', 'Condição', ordem, direcao, nome, empresa, filtro) }}
+            {{ th('instrutor', 'Instrutor', ordem, direcao, nome, empresa, filtro) }}
             <th>Ações</th>
         </tr>
     </thead>
@@ -107,7 +124,6 @@
     {% for i in itens %}
         {% set cls = {'VALIDO': 'table-success', 'REAVALIAR': 'table-warning', 'VENCIDO': 'table-danger'}[i.codigo] %}
         <tr class="{{ cls }}">
-            <td>{{ i.r.numero or '' }}</td>
             <td>{{ i.r.nome }}</td>
             <td>{{ i.r.matricula or '' }}</td>
             <td>{{ i.r.empresa or '' }}</td>
@@ -124,17 +140,17 @@
             <td>{{ i.r.instrutor or '' }}</td>
             <td class="text-nowrap">
                 {% if i.codigo != 'VALIDO' %}
-                <a href="{{ url_for('pt_loto.revalidar', id=i.r.id, nome=nome, empresa=empresa, condicao=filtro) }}" class="btn btn-sm btn-success">🔄 Revalidar</a>
+                <a href="{{ url_for('pt_loto.revalidar', id=i.r.id, nome=nome, empresa=empresa, condicao=filtro, ordem=ordem, direcao=direcao) }}" class="btn btn-sm btn-success">🔄 Revalidar</a>
                 {% endif %}
-                <a href="{{ url_for('pt_loto.editar', id=i.r.id, nome=nome, empresa=empresa, condicao=filtro) }}" class="btn btn-sm btn-warning">Editar</a>
-                <form method="POST" action="{{ url_for('pt_loto.excluir', id=i.r.id, nome=nome, empresa=empresa, condicao=filtro) }}" style="display:inline;"
+                <a href="{{ url_for('pt_loto.editar', id=i.r.id, nome=nome, empresa=empresa, condicao=filtro, ordem=ordem, direcao=direcao) }}" class="btn btn-sm btn-warning">Editar</a>
+                <form method="POST" action="{{ url_for('pt_loto.excluir', id=i.r.id, nome=nome, empresa=empresa, condicao=filtro, ordem=ordem, direcao=direcao) }}" style="display:inline;"
                       onsubmit="return confirm('Confirma exclusão?');">
                     <button type="submit" class="btn btn-sm btn-danger">Excluir</button>
                 </form>
             </td>
         </tr>
     {% else %}
-        <tr><td colspan="9" class="text-center text-muted">Nenhum registro encontrado.</td></tr>
+        <tr><td colspan="8" class="text-center text-muted">Nenhum registro encontrado.</td></tr>
     {% endfor %}
     </tbody>
 </table>
