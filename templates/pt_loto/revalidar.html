@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>🔄 Revalidar treinamento</h2>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div><strong>Nome:</strong> {{ registro.nome }}</div>
+        <div><strong>Matrícula/SSO:</strong> {{ registro.matricula or '-' }} &nbsp;|&nbsp; <strong>Empresa:</strong> {{ registro.empresa or '-' }}</div>
+        <div><strong>Data atual do treinamento:</strong> {{ registro.data_treinamento.strftime('%d/%m/%Y') }}
+            &nbsp;|&nbsp; <strong>Validade atual:</strong> {{ registro.data_validade.strftime('%d/%m/%Y') }}</div>
+    </div>
+</div>
+
+<form method="POST">
+    {{ form.hidden_tag() }}
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            {{ form.data_treinamento.label }} {{ form.data_treinamento(class="form-control", type="date") }}
+            {% for erro in form.data_treinamento.errors %}<div class="text-danger small">{{ erro }}</div>{% endfor %}
+            <small class="text-muted">A nova validade será esta data + 12 meses.</small>
+        </div>
+        <div class="col-md-8 mb-3">
+            {{ form.instrutor.label }} {{ form.instrutor(class="form-control") }}
+        </div>
+    </div>
+    <button type="submit" class="btn btn-success">Confirmar revalidação</button>
+    <a href="{{ url_for('pt_loto.index', condicao=condicao_origem) }}" class="btn btn-secondary">Cancelar</a>
+</form>
+{% endblock %}
