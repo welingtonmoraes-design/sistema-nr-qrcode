@@ -4,10 +4,7 @@
 <form method="POST">
     {{ form.hidden_tag() }}
     <div class="row">
-        <div class="col-md-3 mb-3">
-            {{ form.numero.label }} {{ form.numero(class="form-control") }}
-        </div>
-        <div class="col-md-9 mb-3">
+        <div class="col-md-12 mb-3">
             {{ form.nome.label }} {{ form.nome(class="form-control") }}
             {% for erro in form.nome.errors %}<div class="text-danger small">{{ erro }}</div>{% endfor %}
         </div>
@@ -31,6 +28,6 @@
         </div>
     </div>
     <button type="submit" class="btn btn-primary">Salvar</button>
-    <a href="{{ url_for('pt_loto.index') }}" class="btn btn-secondary">Cancelar</a>
+    <a href="{{ url_for('pt_loto.index', nome=filtros.nome, empresa=filtros.empresa, condicao=filtros.condicao, ordem=filtros.ordem, direcao=filtros.direcao) }}" class="btn btn-secondary">Cancelar</a>
 </form>
 {% endblock %}
