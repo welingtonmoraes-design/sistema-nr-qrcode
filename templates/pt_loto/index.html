@@ -1,45 +1,142 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>⬆ Importar treinamentos de PT/LOTO (Excel)</h2>
-
-<div class="alert alert-info">
-    <strong>Colunas esperadas</strong> (a ordem não importa; o título acima do cabeçalho é ignorado):<br>
-    NÚMERO · NOME · MATRÍCULA/SSO · EMPRESA · DATA DO TREINAMENTO · INSTRUTOR<br>
-    As colunas <em>Validade</em> e <em>Condição</em> são recalculadas pelo sistema.<br>
-    Duplicado = mesmo <strong>nome + matrícula/SSO + data do treinamento</strong>.
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h2 class="mb-0">🔒 Validade PT e LOTO</h2>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('pt_loto.importar') }}" class="btn btn-success">⬆ Importar Excel</a>
+        <a href="{{ url_for('pt_loto.novo') }}" class="btn btn-primary">+ Novo</a>
+    </div>
 </div>
 
-<form method="POST" enctype="multipart/form-data">
-    {{ form.hidden_tag() }}
-    <div class="mb-3">
-        {{ form.arquivo.label }}
-        {{ form.arquivo(class="form-control", accept=".xlsx,.xlsm") }}
-        {% for erro in form.arquivo.errors %}<div class="text-danger small">{{ erro }}</div>{% endfor %}
+<!-- Resumo (clicável: filtra pela condição, mantendo nome e empresa) -->
+<div class="row g-2 mb-3">
+    <div class="col-6 col-md-3">
+        <a class="text-decoration-none" href="{{ url_for('pt_loto.index', nome=nome, empresa=empresa) }}">
+            <div class="p-2 rounded bg-light border text-center text-dark">
+                Em vigor<br><strong>{{ em_vigor }}</strong>
+                <div class="small text-muted">de {{ total }} no total</div>
+            </div>
+        </a>
     </div>
-    <div class="form-check mb-3">
-        {{ form.substituir(class="form-check-input") }}
-        {{ form.substituir.label(class="form-check-label") }}
-        <div class="text-danger small">Atenção: apaga todos os registros atuais antes de importar.</div>
+    <div class="col-6 col-md-3">
+        <a class="text-decoration-none" href="{{ url_for('pt_loto.index', nome=nome, empresa=empresa, condicao='VALIDO') }}">
+            <div class="p-2 rounded text-center text-white" style="background:#198754;">Dentro da validade<br><strong>{{ contagem.VALIDO }}</strong></div>
+        </a>
     </div>
-    <button type="submit" class="btn btn-success">Importar</button>
-    <a href="{{ url_for('pt_loto.index') }}" class="btn btn-secondary">Cancelar</a>
+    <div class="col-6 col-md-3">
+        <a class="text-decoration-none" href="{{ url_for('pt_loto.index', nome=nome, empresa=empresa, condicao='REAVALIAR') }}">
+            <div class="p-2 rounded text-center text-dark" style="background:#ffc107;">Reavaliar em 30 dias<br><strong>{{ contagem.REAVALIAR }}</strong></div>
+        </a>
+    </div>
+    <div class="col-6 col-md-3">
+        <a class="text-decoration-none" href="{{ url_for('pt_loto.index', nome=nome, empresa=empresa, condicao='VENCIDO') }}">
+            <div class="p-2 rounded text-center text-white" style="background:#dc3545;">Vencidos<br><strong>{{ contagem.VENCIDO }}</strong></div>
+        </a>
+    </div>
+</div>
+
+<!-- Filtros -->
+<form method="GET" class="row g-2 mb-3">
+    <div class="col-12 col-md-4">
+        <input type="text" name="nome" value="{{ nome }}" class="form-control"
+               placeholder="🔍 Nome (parcial ou completo)">
+    </div>
+    <div class="col-12 col-md-3">
+        <select name="empresa" class="form-select">
+            <option value="" {{ 'selected' if empresa == '' }}>Todas as empresas</option>
+            {% for e in lista_empresas %}
+                <option value="{{ e }}" {{ 'selected' if empresa == e }}>{{ e }}</option>
+            {% endfor %}
+            {% if tem_sem_empresa %}
+                <option value="{{ SEM_EMPRESA }}" {{ 'selected' if empresa == SEM_EMPRESA }}>(Sem empresa)</option>
+            {% endif %}
+        </select>
+    </div>
+    <div class="col-12 col-md-3">
+        <select name="condicao" class="form-select">
+            <option value="" {{ 'selected' if filtro == '' }}>Em vigor (padrão)</option>
+            <option value="VALIDO" {{ 'selected' if filtro == 'VALIDO' }}>Dentro da validade</option>
+            <option value="REAVALIAR" {{ 'selected' if filtro == 'REAVALIAR' }}>Reavaliar em 30 dias</option>
+            <option value="VENCIDO" {{ 'selected' if filtro == 'VENCIDO' }}>Vencidos</option>
+            <option value="TODOS" {{ 'selected' if filtro == 'TODOS' }}>Todos (incluindo vencidos)</option>
+        </select>
+    </div>
+    <div class="col-12 col-md-2 d-flex gap-2">
+        <button class="btn btn-dark flex-fill" type="submit">Filtrar</button>
+        {% if filtros_ativos %}
+            <a href="{{ url_for('pt_loto.index') }}" class="btn btn-outline-secondary" title="Limpar filtros">✕</a>
+        {% endif %}
+    </div>
 </form>
 
-{% if erros %}
-<div class="alert alert-danger mt-4">
-    <strong>Linhas com erro, não importadas ({{ erros|length }}):</strong>
-    <ul class="mb-0">
-        {% for e in erros %}<li>{{ e }}</li>{% endfor %}
-    </ul>
+{% if filtro == '' and contagem.VENCIDO > 0 %}
+<div class="alert alert-danger py-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <span>🔴 <strong>{{ contagem.VENCIDO }}</strong> treinamento(s) vencido(s) oculto(s) desta lista.</span>
+    <a href="{{ url_for('pt_loto.index', nome=nome, empresa=empresa, condicao='VENCIDO') }}" class="btn btn-sm btn-danger">Ver vencidos</a>
 </div>
 {% endif %}
 
-{% if duplicados %}
-<div class="alert alert-warning mt-3">
-    <strong>Duplicados ignorados ({{ duplicados|length }}):</strong>
-    <ul class="mb-0">
-        {% for d in duplicados %}<li>{{ d }}</li>{% endfor %}
-    </ul>
+{% if filtro == 'VENCIDO' %}
+<div class="alert alert-info py-2">
+    Exibindo apenas os <strong>vencidos</strong>. Use <strong>Revalidar</strong> para informar a nova data do treinamento.
 </div>
 {% endif %}
+
+<div class="text-muted small mb-2">
+    {{ itens|length }} registro(s) exibido(s)
+    {% if nome %} · nome contém "<strong>{{ nome }}</strong>"{% endif %}
+    {% if empresa %} · empresa: <strong>{{ '(sem empresa)' if empresa == SEM_EMPRESA else empresa }}</strong>{% endif %}
+</div>
+
+<div class="table-responsive">
+<table class="table table-bordered align-middle">
+    <thead class="table-dark">
+        <tr>
+            <th>Número</th>
+            <th>Nome</th>
+            <th>Matrícula/SSO</th>
+            <th>Empresa</th>
+            <th>Data do Treinamento</th>
+            <th>Validade do Treinamento</th>
+            <th>Condição</th>
+            <th>Instrutor</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for i in itens %}
+        {% set cls = {'VALIDO': 'table-success', 'REAVALIAR': 'table-warning', 'VENCIDO': 'table-danger'}[i.codigo] %}
+        <tr class="{{ cls }}">
+            <td>{{ i.r.numero or '' }}</td>
+            <td>{{ i.r.nome }}</td>
+            <td>{{ i.r.matricula or '' }}</td>
+            <td>{{ i.r.empresa or '' }}</td>
+            <td>{{ i.r.data_treinamento.strftime('%d/%m/%Y') }}</td>
+            <td>{{ i.r.data_validade.strftime('%d/%m/%Y') if i.r.data_validade else '—' }}</td>
+            <td>
+                <strong>{{ i.texto }}</strong><br>
+                <small>
+                    {% if i.dias == -99999 %}corrija a data
+                    {% elif i.dias < 0 %}venceu há {{ -i.dias }} dia(s)
+                    {% else %}faltam {{ i.dias }} dia(s){% endif %}
+                </small>
+            </td>
+            <td>{{ i.r.instrutor or '' }}</td>
+            <td class="text-nowrap">
+                {% if i.codigo != 'VALIDO' %}
+                <a href="{{ url_for('pt_loto.revalidar', id=i.r.id, nome=nome, empresa=empresa, condicao=filtro) }}" class="btn btn-sm btn-success">🔄 Revalidar</a>
+                {% endif %}
+                <a href="{{ url_for('pt_loto.editar', id=i.r.id, nome=nome, empresa=empresa, condicao=filtro) }}" class="btn btn-sm btn-warning">Editar</a>
+                <form method="POST" action="{{ url_for('pt_loto.excluir', id=i.r.id, nome=nome, empresa=empresa, condicao=filtro) }}" style="display:inline;"
+                      onsubmit="return confirm('Confirma exclusão?');">
+                    <button type="submit" class="btn btn-sm btn-danger">Excluir</button>
+                </form>
+            </td>
+        </tr>
+    {% else %}
+        <tr><td colspan="9" class="text-center text-muted">Nenhum registro encontrado.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
 {% endblock %}
