@@ -53,6 +53,23 @@ class ColaboradorCursoForm(FlaskForm):
     data_realizado = DateField(
         "Data Realizado", format="%Y-%m-%d", validators=[DataRequired()]
     )
+    certificado = FileField(
+        "Certificado (foto ou PDF)",
+        validators=[Optional(), FileAllowed(["pdf", "jpg", "jpeg", "png"],
+                                            "Envie um arquivo PDF, JPG ou PNG.")]
+    )
+    remover_certificado = BooleanField("Remover o certificado atual")
+
+
+class RevalidarCursoForm(FlaskForm):
+    data_realizado = DateField(
+        "Nova data de realização", format="%Y-%m-%d", validators=[DataRequired()]
+    )
+    certificado = FileField(
+        "Novo certificado (foto ou PDF) — opcional",
+        validators=[Optional(), FileAllowed(["pdf", "jpg", "jpeg", "png"],
+                                            "Envie um arquivo PDF, JPG ou PNG.")]
+    )
 
 
 class TreinamentoPTLotoForm(FlaskForm):
