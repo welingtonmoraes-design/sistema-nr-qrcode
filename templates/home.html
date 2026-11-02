@@ -12,6 +12,23 @@
 </div>
 {% endif %}
 
+<!-- Gerador de QR Codes (vale para todos os treinamentos) -->
+<a href="{{ url_for('qrcodes.gerar') }}" class="text-decoration-none">
+    <div class="card shadow-sm modulo-card mb-4 border-primary">
+        <div class="card-body d-flex align-items-center gap-3 flex-wrap">
+            <div class="display-5">📱</div>
+            <div class="flex-fill">
+                <h5 class="card-title text-dark mb-1">Gerar QR Codes</h5>
+                <p class="card-text text-muted mb-0">
+                    Crie as etiquetas com o nome da pessoa. Ao escanear, aparecem todos os treinamentos
+                    (NRs e PT/LOTO) com as datas de validade.
+                </p>
+            </div>
+            <span class="btn btn-primary">Abrir gerador</span>
+        </div>
+    </div>
+</a>
+
 <div class="row g-4">
     {% for m in MODULOS %}
     <div class="col-12 col-md-6 col-lg-4">
