@@ -54,8 +54,9 @@ class CatalogoNR(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     nome_curso = db.Column(db.String(100), nullable=False)
-    validade_meses = db.Column(db.Integer, nullable=True)  # None = sem validade
-    descricao = db.Column(db.String(255))
+    carga_horaria = db.Column(db.String(50))                 # ex: "8h"
+    validade_meses = db.Column(db.Integer, nullable=True)    # None = sem validade
+    descricao = db.Column(db.Text)                           # observacoes tecnicas
 
     def __repr__(self):
         return f"<CatalogoNR {self.nome_curso}>"
@@ -151,19 +152,3 @@ class TreinamentoPTLoto(db.Model):
 
     def __repr__(self):
         return f"<TreinamentoPTLoto {self.nome}>"
-
-class CatalogoNR(db.Model):
-    __tablename__ = "catalogo_nr"
-
-    id = db.Column(db.Integer, primary_key=True)
-    nome_curso = db.Column(db.String(100), nullable=False)
-    carga_horaria = db.Column(db.String(50))                 # ex: "8h"
-    validade_meses = db.Column(db.Integer, nullable=True)    # None = sem validade
-    descricao = db.Column(db.Text)                           # observacoes tecnicas
-
-    def __repr__(self):
-        return f"<CatalogoNR {self.nome_curso}>"
-
-    @property
-    def tem_validade(self):
-        return self.validade_meses is not None
