@@ -8,7 +8,7 @@ MODULOS = [
     {
         "id": "nrs",
         "nome": "Controle NRs",
-        "descricao": "Colaboradores, cursos de NRs, validades, alertas e QR Codes.",
+        "descricao": "Colaboradores, cursos de NRs, validades, alertas e certificados.",
         "icone": "🎓",
         "endpoint": "nrs.painel",
         "blueprints": ["nrs", "colaboradores", "catalogo_nr", "cursos"],
@@ -18,7 +18,6 @@ MODULOS = [
             {"nome": "Novo lançamento", "endpoint": "cursos.novo"},
             {"nome": "Colaboradores", "endpoint": "colaboradores.listar"},
             {"nome": "Catálogo NR", "endpoint": "catalogo_nr.listar"},
-            {"nome": "Gerar QR Codes", "endpoint": "cursos.gerar_qrcodes"},
         ],
     },
     {
