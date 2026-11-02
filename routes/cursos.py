@@ -1,7 +1,7 @@
 from datetime import date
 
 from flask import (Blueprint, render_template, redirect, url_for, flash,
-                   request, send_file, make_response, abort)
+                   request, make_response, abort)
 from flask_login import login_required
 
 from models import db, Colaborador, CatalogoNR, ColaboradorCurso
@@ -36,13 +36,15 @@ def _preparar_form(form, colaborador_atual_id=None):
     ]
 
 
-@bp_cursos.route("/gerar-qrcodes")
+@bp_cursos.route("/")
 @login_required
-def gerar_qrcodes():
-    # O gerador agora fica na pagina inicial (todos os treinamentos).
-    return redirect(url_for("qrcodes.gerar"))
+def listar():
+    # A lista de cursos realizados agora e o painel do modulo.
+    return redirect(url_for("nrs.painel"))
 
 
+@bp_cursos.route("/novo", methods=["GET", "POST"])
+@login_required
 def novo():
     form = ColaboradorCursoForm()
     _preparar_form(form)
@@ -160,21 +162,8 @@ def certificado(id):
     return resposta
 
 
-@bp_cursos.route("/gerar-qrcodes", methods=["GET", "POST"])
+@bp_cursos.route("/gerar-qrcodes")
 @login_required
 def gerar_qrcodes():
-    from services.qrcode_service import montar_folha_a4, exportar_paginas_pdf
-
-    if request.method == "POST":
-        ids = request.form.getlist("colaboradores")
-        if not ids:
-            flash("Selecione ao menos um colaborador.", "danger")
-            return redirect(url_for("cursos.gerar_qrcodes"))
-
-        colaboradores = Colaborador.query.filter(Colaborador.id.in_(ids)).all()
-        paginas = montar_folha_a4(colaboradores)
-        caminho_pdf = exportar_paginas_pdf(paginas, "static/qrcodes/lote_qrcodes.pdf")
-        return send_file(caminho_pdf, as_attachment=True)
-
-    colaboradores = Colaborador.query.filter_by(ativo=True).order_by(Colaborador.nome).all()
-    return render_template("cursos/gerar_qrcodes.html", colaboradores=colaboradores)
+    # O gerador agora fica na pagina inicial (todos os treinamentos).
+    return redirect(url_for("qrcodes.gerar"))
