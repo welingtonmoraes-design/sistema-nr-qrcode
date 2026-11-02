@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>🔄 Revalidar treinamento</h2>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div><strong>Colaborador:</strong> {{ registro.colaborador.nome }}</div>
+        <div><strong>Curso:</strong> {{ registro.catalogo.nome_curso }}</div>
+        <div>
+            <strong>Realizado em:</strong> {{ registro.data_realizado.strftime('%d/%m/%Y') }}
+            &nbsp;|&nbsp;
+            <strong>Vencimento atual:</strong>
+            {{ registro.data_vencimento.strftime('%d/%m/%Y') if registro.data_vencimento else 'sem validade' }}
+        </div>
+        {% if registro.certificado_nome %}
+        <div><strong>Certificado atual:</strong>
+            <a href="{{ url_for('cursos.certificado', id=registro.id) }}" target="_blank" rel="noopener">{{ registro.certificado_nome }}</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<form method="POST" enctype="multipart/form-data">
+    {{ form.hidden_tag() }}
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            {{ form.data_realizado.label }} {{ form.data_realizado(class="form-control", type="date") }}
+            {% for erro in form.data_realizado.errors %}<div class="text-danger small">{{ erro }}</div>{% endfor %}
+            <small class="text-muted">O novo vencimento é calculado a partir desta data.</small>
+        </div>
+        <div class="col-md-8 mb-3">
+            {{ form.certificado.label }}
+            {{ form.certificado(class="form-control", accept=".pdf,.jpg,.jpeg,.png,image/*,application/pdf") }}
+            {% for erro in form.certificado.errors %}<div class="text-danger small">{{ erro }}</div>{% endfor %}
+            {% if registro.certificado_nome %}
+                <small class="text-warning">Se não enviar um novo arquivo, o certificado antigo continua anexado.</small>
+            {% endif %}
+        </div>
+    </div>
+    <button type="submit" class="btn btn-success">Confirmar revalidação</button>
+    <a href="{{ url_for('nrs.painel', nome=filtros.nome, curso=filtros.curso, condicao=filtros.condicao, ordem=filtros.ordem, direcao=filtros.direcao) }}" class="btn btn-secondary">Cancelar</a>
+</form>
+{% endblock %}
