@@ -36,15 +36,13 @@ def _preparar_form(form, colaborador_atual_id=None):
     ]
 
 
-@bp_cursos.route("/")
+@bp_cursos.route("/gerar-qrcodes")
 @login_required
-def listar():
-    # A lista de cursos realizados agora e o painel do modulo.
-    return redirect(url_for("nrs.painel"))
+def gerar_qrcodes():
+    # O gerador agora fica na pagina inicial (todos os treinamentos).
+    return redirect(url_for("qrcodes.gerar"))
 
 
-@bp_cursos.route("/novo", methods=["GET", "POST"])
-@login_required
 def novo():
     form = ColaboradorCursoForm()
     _preparar_form(form)
