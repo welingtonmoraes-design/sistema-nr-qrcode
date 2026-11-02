@@ -2,6 +2,8 @@ import calendar
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from datetime import date
+from sqlalchemy.orm import deferred
+
 
 db = SQLAlchemy()
 
@@ -74,6 +76,50 @@ class ColaboradorCurso(db.Model):
     catalogo_nr_id = db.Column(db.Integer, db.ForeignKey("catalogo_nr.id"), nullable=False)
     data_realizado = db.Column(db.Date, nullable=False)
     data_vencimento = db.Column(db.Date, nullable=True)  # None = sem vencimento
+
+    # Certificado (foto ou PDF) guardado no banco.
+    # 'deferred': o arquivo so e lido quando realmente usado (listas continuam leves).
+    certificado_nome = db.Column(db.String(255))
+    certificado_tipo = db.Column(db.String(100))
+    certificado_dados = deferred(db.Column(db.LargeBinary))
+
+    catalogo = db.relationship("CatalogoNR", lazy="joined")
+
+    def calcular_vencimento(self, catalogo=None):
+        cat = catalogo or self.catalogo
+        if cat is None:
+            raise ValueError(
+                "Nao foi possivel determinar o catalogo NR. "
+                "Informe o parametro 'catalogo'."
+            )
+
+        if cat.validade_meses is None:
+            self.data_vencimento = None
+            return None
+
+        meses = cat.validade_meses
+        ano = self.data_realizado.year + (self.data_realizado.month - 1 + meses) // 12
+        mes = (self.data_realizado.month - 1 + meses) % 12 + 1
+        dia = min(self.data_realizado.day, 28)
+
+        self.data_vencimento = self.data_realizado.replace(year=ano, month=mes, day=dia)
+        return self.data_vencimento
+
+    def status(self):
+        if self.data_vencimento is None:
+            return "SEM_VENCIMENTO", None
+
+        hoje = date.today()
+        dias_restantes = (self.data_vencimento - hoje).days
+
+        if dias_restantes < 0:
+            return "VENCIDO", dias_restantes
+        elif dias_restantes <= 30:
+            return "A_VENCER", dias_restantes
+        return "VALIDO", dias_restantes
+
+    def __repr__(self):
+        return f"<ColaboradorCurso colaborador_id={self.colaborador_id} catalogo_nr_id={self.catalogo_nr_id}>"
 
     catalogo = db.relationship("CatalogoNR", lazy="joined")
 
