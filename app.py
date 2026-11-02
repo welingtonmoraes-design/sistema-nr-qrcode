@@ -21,6 +21,7 @@ if database_url.startswith("postgresql://") and "+psycopg" not in database_url:
 app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_pre_ping": True}
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "troque-esta-chave-em-producao")
+app.config["MAX_CONTENT_LENGTH"] = 12 * 1024 * 1024 # aceita fotos de celular (ate 12 MB)
 
 db.init_app(app)
 
@@ -110,6 +111,11 @@ def verificar_colaborador(cpf):
         cursos_info=cursos_info,
         pt_info=pt_info
     )
+    
+@app.errorhandler(413)
+def arquivo_muito_grande(e):
+    return "Arquivo muito grande (máximo 12 MB). Volte e envie um arquivo menor.", 413
+
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
