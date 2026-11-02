@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>⬆ Importar catálogo de NRs (Excel)</h2>
+
+<div class="alert alert-info">
+    <strong>Colunas esperadas</strong> (a ordem não importa):<br>
+    NORMAS NR · NOME DO CURSO/TREINAMENTO · CARGA HORÁRIA MÍNIMA · VALIDADE / PERÍODO DE RECICLAGEM · OBSERVAÇÕES TÉCNICAS<br>
+    O nome do curso é gravado como <em>"NR-35 - Trabalho em Altura"</em>. As observações técnicas vão para a descrição.<br>
+    Validade aceita: <em>2 anos, 12 meses, Anual, Bienal, Semestral, Sem validade, Não se aplica</em>.<br>
+    Duplicado = mesmo nome de curso.
+</div>
+
+<form method="POST" enctype="multipart/form-data">
+    {{ form.hidden_tag() }}
+    <div class="mb-3">
+        {{ form.arquivo.label }}
+        {{ form.arquivo(class="form-control", accept=".xlsx,.xlsm") }}
+        {% for erro in form.arquivo.errors %}<div class="text-danger small">{{ erro }}</div>{% endfor %}
+    </div>
+    <div class="form-check mb-3">
+        {{ form.atualizar(class="form-check-input") }}
+        {{ form.atualizar.label(class="form-check-label") }}
+        <div class="text-muted small">Atualiza validade, carga horária e descrição, e recalcula os vencimentos dos colaboradores ligados ao curso.</div>
+    </div>
+    <button type="submit" class="btn btn-success">Importar</button>
+    <a href="{{ url_for('catalogo_nr.listar') }}" class="btn btn-secondary">Voltar ao catálogo</a>
+</form>
+
+{% if resultado %}
+<div class="alert alert-success mt-4">
+    ✅ <strong>{{ resultado.inseridos }}</strong> inserido(s) ·
+    <strong>{{ resultado.atualizados }}</strong> atualizado(s)
+    {% if resultado.recalculados %} · {{ resultado.recalculados }} vencimento(s) de colaboradores recalculado(s){% endif %}
+</div>
+{% endif %}
+
+{% if erros %}
+<div class="alert alert-danger mt-3">
+    <strong>Linhas com erro, não importadas ({{ erros|length }}):</strong>
+    <ul class="mb-0">{% for e in erros %}<li>{{ e }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+{% if avisos %}
+<div class="alert alert-warning mt-3">
+    <strong>⚠ Revise ({{ avisos|length }}):</strong>
+    <ul class="mb-0">{% for a in avisos %}<li>{{ a }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+{% if resultado and resultado.ignorados %}
+<div class="alert alert-secondary mt-3">
+    <strong>Ignorados ({{ resultado.ignorados|length }}):</strong>
+    <ul class="mb-0">{% for i in resultado.ignorados %}<li>{{ i }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+{% endblock %}
