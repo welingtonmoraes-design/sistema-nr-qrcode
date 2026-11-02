@@ -70,6 +70,10 @@
                     </li>
                     {% endif %}
                 {% endfor %}
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if request.blueprint == 'qrcodes' else '' }}"
+                       href="{{ url_for('qrcodes.gerar') }}">📱 Gerar QR Codes</a>
+                </li>
             </ul>
 
             <div class="d-flex gap-2">
