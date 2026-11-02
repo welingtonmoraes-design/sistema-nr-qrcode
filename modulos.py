@@ -5,19 +5,11 @@ em routes/ e registre-o no app.py.
 """
 
 MODULOS = [
-    {
-        "id": "nrs",
-        "nome": "Controle NRs",
-        "descricao": "Colaboradores, cursos de NRs, validades, alertas e QR Codes.",
-        "icone": "🎓",
-        "endpoint": "nrs.painel",
-        "blueprints": ["nrs", "colaboradores", "catalogo_nr", "cursos"],
-        "ativo": True,
-        "submenu": [
-            {"nome": "Painel", "endpoint": "nrs.painel"},
+           "submenu": [
+            {"nome": "Treinamentos", "endpoint": "nrs.painel"},
+            {"nome": "Novo lançamento", "endpoint": "cursos.novo"},
             {"nome": "Colaboradores", "endpoint": "colaboradores.listar"},
             {"nome": "Catálogo NR", "endpoint": "catalogo_nr.listar"},
-            {"nome": "Cursos Realizados", "endpoint": "cursos.listar"},
             {"nome": "Gerar QR Codes", "endpoint": "cursos.gerar_qrcodes"},
         ],
     },
