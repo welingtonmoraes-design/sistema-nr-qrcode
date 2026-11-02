@@ -41,6 +41,7 @@ def novo():
 
 @bp_catalogo.route("/editar/<int:id>", methods=["GET", "POST"])
 @login_required
+
 def editar(id):
     curso = CatalogoNR.query.get_or_404(id)
     form = CatalogoNRForm(obj=curso)
@@ -72,9 +73,24 @@ def editar(id):
 @login_required
 def excluir(id):
     curso = CatalogoNR.query.get_or_404(id)
-    db.session.delete(curso)
-    db.session.commit()
-    flash("Curso removido do catálogo.", "warning")
+
+    em_uso = ColaboradorCurso.query.filter_by(catalogo_nr_id=curso.id).count()
+    if em_uso:
+        flash(
+            f"Não é possível excluir '{curso.nome_curso}': há {em_uso} lançamento(s) "
+            f"de colaboradores ligado(s) a este curso. Remova ou transfira esses "
+            f"lançamentos antes.",
+            "danger"
+        )
+        return redirect(url_for("catalogo_nr.listar"))
+
+    try:
+        db.session.delete(curso)
+        db.session.commit()
+        flash("Curso removido do catálogo.", "warning")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Não foi possível excluir: {e}", "danger")
     return redirect(url_for("catalogo_nr.listar"))
 
 
