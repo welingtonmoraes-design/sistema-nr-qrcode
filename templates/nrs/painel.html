@@ -1,31 +1,177 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Controle NRs — Painel de Alertas de Vencimento</h2>
 
-{% if alertas %}
-    <table class="table table-striped mt-3">
-        <thead>
-            <tr>
-                <th>Colaborador</th>
-                <th>Curso</th>
-                <th>Vencimento</th>
-                <th>Status</th>
-                <th>Dias Restantes</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for a in alertas %}
-            <tr class="{{ 'table-danger' if a.status == 'VENCIDO' else 'table-warning' }}">
-                <td>{{ a.colaborador }}</td>
-                <td>{{ a.curso }}</td>
-                <td>{{ a.vencimento.strftime('%d/%m/%Y') }}</td>
-                <td>{{ a.status.replace('_', ' ') }}</td>
-                <td>{{ a.dias_restantes }}</td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
-{% else %}
-    <p class="text-success mt-3">✅ Nenhum curso vencido ou próximo do vencimento.</p>
+<style>
+    .resumo-cards { display: flex; flex-wrap: nowrap; gap: .5rem; margin-bottom: 1rem; }
+    .resumo-item { flex: 1 1 0; min-width: 0; text-decoration: none; container-type: inline-size; }
+    .resumo-box {
+        padding: .5rem .25rem; border-radius: .375rem; text-align: center;
+        white-space: nowrap; line-height: 1.25; height: 100%;
+        font-size: clamp(7px, 1.6vw, 15px);
+    }
+    @supports (font-size: 1cqw) { .resumo-box { font-size: clamp(7px, 7cqw, 15px); } }
+    .resumo-box strong { display: block; font-size: 1.6em; }
+    .resumo-box .resumo-sub { font-size: .8em; opacity: .75; }
+    @container (max-width: 110px) { .resumo-box { white-space: normal; } }
+
+    .tabela-nr { font-size: clamp(11px, 1.05vw, 14px); width: 100%; }
+    .tabela-nr th, .tabela-nr td { padding: .35rem .45rem; vertical-align: middle; }
+    .tabela-nr td.col-nome, .tabela-nr td.col-data, .tabela-nr td.col-acoes { white-space: nowrap; }
+    .tabela-nr td.col-nome { font-weight: 500; }
+    .tabela-nr .btn {
+        --bs-btn-padding-y: .15rem; --bs-btn-padding-x: .4rem; --bs-btn-font-size: .85em;
+    }
+</style>
+
+{% macro th(chave, titulo, ordem, direcao, nome, curso, filtro) %}
+    {% set ativo = (ordem == chave) %}
+    {% set prox = 'desc' if (ativo and direcao == 'asc') else 'asc' %}
+    <th>
+        <a href="{{ url_for('nrs.painel', nome=nome, curso=curso, condicao=filtro, ordem=chave, direcao=prox) }}"
+           class="text-white text-decoration-none" title="Ordenar por {{ titulo }}">
+            {{ titulo }}
+            {% if ativo %}{{ '▲' if direcao == 'asc' else '▼' }}{% else %}<span style="opacity:.5;">⇅</span>{% endif %}
+        </a>
+    </th>
+{% endmacro %}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h2 class="mb-0">🎓 Controle NRs — Treinamentos</h2>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('cursos.novo') }}" class="btn btn-primary">+ Novo lançamento</a>
+    </div>
+</div>
+
+<!-- Resumo (4 balões em uma linha, clicáveis) -->
+<div class="resumo-cards">
+    <a class="resumo-item" href="{{ url_for('nrs.painel', nome=nome, curso=curso, ordem=ordem, direcao=direcao) }}">
+        <div class="resumo-box bg-light border text-dark">
+            Em vigor<strong>{{ em_vigor }}</strong>
+            <span class="resumo-sub">de {{ total }} no total</span>
+        </div>
+    </a>
+    <a class="resumo-item" href="{{ url_for('nrs.painel', nome=nome, curso=curso, condicao='VALIDO', ordem=ordem, direcao=direcao) }}">
+        <div class="resumo-box text-white" style="background:#198754;">
+            Dentro da validade<strong>{{ contagem.VALIDO }}</strong>
+        </div>
+    </a>
+    <a class="resumo-item" href="{{ url_for('nrs.painel', nome=nome, curso=curso, condicao='AVENCER', ordem=ordem, direcao=direcao) }}">
+        <div class="resumo-box text-dark" style="background:#ffc107;">
+            Vencem em 30 dias<strong>{{ contagem.AVENCER }}</strong>
+        </div>
+    </a>
+    <a class="resumo-item" href="{{ url_for('nrs.painel', nome=nome, curso=curso, condicao='VENCIDO', ordem=ordem, direcao=direcao) }}">
+        <div class="resumo-box text-white" style="background:#dc3545;">
+            Vencidos<strong>{{ contagem.VENCIDO }}</strong>
+        </div>
+    </a>
+</div>
+
+<!-- Filtros -->
+<form method="GET" class="row g-2 mb-3">
+    <input type="hidden" name="ordem" value="{{ ordem }}">
+    <input type="hidden" name="direcao" value="{{ direcao }}">
+    <div class="col-12 col-md-4">
+        <input type="text" name="nome" value="{{ nome }}" class="form-control"
+               placeholder="🔍 Colaborador (nome parcial ou completo)">
+    </div>
+    <div class="col-12 col-md-3">
+        <select name="curso" class="form-select">
+            <option value="" {{ 'selected' if curso == '' }}>Todos os cursos</option>
+            {% for c in lista_cursos %}
+                <option value="{{ c.id }}" {{ 'selected' if curso == c.id|string }}>{{ c.nome_curso }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-12 col-md-3">
+        <select name="condicao" class="form-select">
+            <option value="" {{ 'selected' if filtro == '' }}>Em vigor (padrão)</option>
+            <option value="VALIDO" {{ 'selected' if filtro == 'VALIDO' }}>Dentro da validade</option>
+            <option value="AVENCER" {{ 'selected' if filtro == 'AVENCER' }}>Vencem em 30 dias</option>
+            <option value="VENCIDO" {{ 'selected' if filtro == 'VENCIDO' }}>Vencidos</option>
+            <option value="TODOS" {{ 'selected' if filtro == 'TODOS' }}>Todos (incluindo vencidos)</option>
+        </select>
+    </div>
+    <div class="col-12 col-md-2 d-flex gap-2">
+        <button class="btn btn-dark flex-fill" type="submit">Filtrar</button>
+        {% if filtros_ativos %}
+            <a href="{{ url_for('nrs.painel') }}" class="btn btn-outline-secondary" title="Limpar filtros">✕</a>
+        {% endif %}
+    </div>
+</form>
+
+{% if filtro == '' and contagem.VENCIDO > 0 %}
+<div class="alert alert-danger py-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <span>🔴 <strong>{{ contagem.VENCIDO }}</strong> treinamento(s) vencido(s) oculto(s) desta lista.</span>
+    <a href="{{ url_for('nrs.painel', nome=nome, curso=curso, condicao='VENCIDO', ordem=ordem, direcao=direcao) }}" class="btn btn-sm btn-danger">Ver vencidos</a>
+</div>
 {% endif %}
+
+{% if filtro == 'VENCIDO' %}
+<div class="alert alert-info py-2">
+    Exibindo apenas os <strong>vencidos</strong>. Use <strong>Revalidar</strong> para informar a nova data de realização.
+</div>
+{% endif %}
+
+<div class="text-muted small mb-2">
+    {{ itens|length }} registro(s) exibido(s)
+    {% if nome %} · colaborador contém "<strong>{{ nome }}</strong>"{% endif %}
+    · <em>clique nos títulos das colunas para ordenar</em>
+</div>
+
+<div class="table-responsive">
+<table class="table table-bordered align-middle tabela-nr">
+    <thead class="table-dark">
+        <tr>
+            {{ th('colaborador', 'Colaborador', ordem, direcao, nome, curso, filtro) }}
+            {{ th('curso', 'Curso', ordem, direcao, nome, curso, filtro) }}
+            {{ th('realizado', 'Realizado em', ordem, direcao, nome, curso, filtro) }}
+            {{ th('vencimento', 'Vencimento', ordem, direcao, nome, curso, filtro) }}
+            {{ th('condicao', 'Condição', ordem, direcao, nome, curso, filtro) }}
+            <th>Certificado</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for i in itens %}
+        {% set cls = {'VALIDO': 'table-success', 'AVENCER': 'table-warning', 'VENCIDO': 'table-danger'}[i.codigo] %}
+        <tr class="{{ cls }}">
+            <td class="col-nome">{{ i.r.colaborador.nome }}</td>
+            <td>{{ i.r.catalogo.nome_curso }}</td>
+            <td class="col-data">{{ i.r.data_realizado.strftime('%d/%m/%Y') }}</td>
+            <td class="col-data">{{ i.r.data_vencimento.strftime('%d/%m/%Y') if i.r.data_vencimento else 'Sem validade' }}</td>
+            <td>
+                <strong>{{ i.texto }}</strong>
+                {% if i.dias is not none %}<br>
+                <small>
+                    {% if i.dias < 0 %}venceu há {{ -i.dias }} dia(s)
+                    {% else %}faltam {{ i.dias }} dia(s){% endif %}
+                </small>
+                {% endif %}
+            </td>
+            <td class="text-center">
+                {% if i.r.certificado_nome %}
+                    <a href="{{ url_for('cursos.certificado', id=i.r.id) }}" target="_blank" rel="noopener"
+                       class="btn btn-sm btn-outline-dark" title="{{ i.r.certificado_nome }}">📎 Ver</a>
+                {% else %}
+                    <span class="text-muted">—</span>
+                {% endif %}
+            </td>
+            <td class="col-acoes">
+                {% if i.codigo != 'VALIDO' %}
+                <a href="{{ url_for('cursos.revalidar', id=i.r.id, nome=nome, curso=curso, condicao=filtro, ordem=ordem, direcao=direcao) }}" class="btn btn-sm btn-success">🔄 Revalidar</a>
+                {% endif %}
+                <a href="{{ url_for('cursos.editar', id=i.r.id, nome=nome, curso=curso, condicao=filtro, ordem=ordem, direcao=direcao) }}" class="btn btn-sm btn-warning">Editar</a>
+                <form method="POST" action="{{ url_for('cursos.excluir', id=i.r.id, nome=nome, curso=curso, condicao=filtro, ordem=ordem, direcao=direcao) }}" style="display:inline;"
+                      onsubmit="return confirm('Confirma exclusão?');">
+                    <button type="submit" class="btn btn-sm btn-danger">Excluir</button>
+                </form>
+            </td>
+        </tr>
+    {% else %}
+        <tr><td colspan="7" class="text-center text-muted">Nenhum registro encontrado.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
 {% endblock %}
