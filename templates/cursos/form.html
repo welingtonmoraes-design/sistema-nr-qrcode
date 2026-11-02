@@ -1,18 +1,50 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>{{ "Editar" if registro else "Novo" }} Curso Realizado</h2>
-<form method="POST">
+<h2>{{ "Editar" if registro else "Novo" }} treinamento de NR</h2>
+
+<form method="POST" enctype="multipart/form-data">
     {{ form.hidden_tag() }}
-    <div class="mb-3">
-        {{ form.colaborador_id.label }} {{ form.colaborador_id(class="form-select") }}
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            {{ form.colaborador_id.label }} {{ form.colaborador_id(class="form-select") }}
+            {% for erro in form.colaborador_id.errors %}<div class="text-danger small">{{ erro }}</div>{% endfor %}
+        </div>
+        <div class="col-md-6 mb-3">
+            {{ form.catalogo_nr_id.label }} {{ form.catalogo_nr_id(class="form-select") }}
+            {% for erro in form.catalogo_nr_id.errors %}<div class="text-danger small">{{ erro }}</div>{% endfor %}
+        </div>
     </div>
-    <div class="mb-3">
-        {{ form.catalogo_nr_id.label }} {{ form.catalogo_nr_id(class="form-select") }}
+
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            {{ form.data_realizado.label }} {{ form.data_realizado(class="form-control", type="date") }}
+            {% for erro in form.data_realizado.errors %}<div class="text-danger small">{{ erro }}</div>{% endfor %}
+            <small class="text-muted">O vencimento é calculado pela validade do curso no catálogo.</small>
+        </div>
     </div>
+
     <div class="mb-3">
-        {{ form.data_realizado.label }} {{ form.data_realizado(class="form-control", type="date") }}
+        {{ form.certificado.label }}
+        {{ form.certificado(class="form-control", accept=".pdf,.jpg,.jpeg,.png,image/*,application/pdf") }}
+        {% for erro in form.certificado.errors %}<div class="text-danger small">{{ erro }}</div>{% endfor %}
+        <small class="text-muted">PDF, JPG ou PNG, até 5 MB. No celular, é possível tirar a foto na hora.</small>
+
+        {% if registro and registro.certificado_nome %}
+        <div class="mt-2 p-2 border rounded bg-light">
+            📎 Certificado atual:
+            <a href="{{ url_for('cursos.certificado', id=registro.id) }}" target="_blank" rel="noopener">{{ registro.certificado_nome }}</a>
+            · <a href="{{ url_for('cursos.certificado', id=registro.id, baixar=1) }}">baixar</a>
+            <div class="form-check mt-1">
+                {{ form.remover_certificado(class="form-check-input") }}
+                {{ form.remover_certificado.label(class="form-check-label") }}
+            </div>
+            <small class="text-muted">Enviar um novo arquivo substitui o atual.</small>
+        </div>
+        {% endif %}
     </div>
+
     <button type="submit" class="btn btn-primary">Salvar</button>
-    <a href="{{ url_for('cursos.listar') }}" class="btn btn-secondary">Cancelar</a>
+    <a href="{{ url_for('nrs.painel', nome=filtros.nome, curso=filtros.curso, condicao=filtros.condicao, ordem=filtros.ordem, direcao=filtros.direcao) }}" class="btn btn-secondary">Cancelar</a>
 </form>
 {% endblock %}
