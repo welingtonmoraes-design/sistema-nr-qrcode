@@ -2,7 +2,7 @@ from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileRequired, FileAllowed
 from wtforms import (
     StringField, PasswordField, SelectField,
-    DateField, IntegerField, BooleanField
+    DateField, IntegerField, BooleanField, TextAreaField
 )
 from wtforms.validators import DataRequired, Email, Length, Optional
 
@@ -31,11 +31,21 @@ class UsuarioForm(FlaskForm):
 
 
 class CatalogoNRForm(FlaskForm):
-    nome_curso = StringField("Nome do Curso (ex: NR-35)", validators=[DataRequired()])
+    nome_curso = StringField("Nome do Curso (ex: NR-35 - Trabalho em Altura)",
+                             validators=[DataRequired(), Length(max=100)])
+    carga_horaria = StringField("Carga horária mínima (ex: 8h)",
+                                validators=[Optional(), Length(max=50)])
     sem_validade = BooleanField("Sem validade (curso não vence)")
-    validade_meses = IntegerField("Validade (meses)", validators=[Optional()])
-    descricao = StringField("Descrição", validators=[Optional()])
+    validade_meses = IntegerField("Validade / reciclagem (meses)", validators=[Optional()])
+    descricao = TextAreaField("Observações técnicas", validators=[Optional()])
 
+
+class ImportarCatalogoForm(FlaskForm):
+    arquivo = FileField(
+        "Planilha Excel (.xlsx)",
+        validators=[FileRequired(), FileAllowed(["xlsx", "xlsm"], "Envie um arquivo .xlsx")]
+    )
+    atualizar = BooleanField("Atualizar cursos que já existem no catálogo")
 
 class ColaboradorCursoForm(FlaskForm):
     colaborador_id = SelectField("Colaborador", coerce=int, validators=[DataRequired()])
