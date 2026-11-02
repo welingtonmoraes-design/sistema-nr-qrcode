@@ -12,41 +12,51 @@
 </div>
 {% endif %}
 
-<form method="POST" id="formQr">
-    <div class="row g-2 mb-2">
-        <div class="col-12 col-md-5">
-            <input type="text" id="busca" class="form-control" placeholder="🔍 Buscar por nome">
-        </div>
-        <div class="col-12 col-md-3">
-            <select id="tipo" class="form-select">
-                <option value="">Todos</option>
-                <option value="nr">Com treinamento de NR</option>
-                <option value="pt">Com treinamento de PT/LOTO</option>
-            </select>
-        </div>
-        <div class="col-12 col-md-4 d-flex gap-2">
-            <button type="button" class="btn btn-outline-dark flex-fill" id="marcarVisiveis">Marcar visíveis</button>
-            <button type="button" class="btn btn-outline-secondary flex-fill" id="desmarcar">Desmarcar todos</button>
-        </div>
+<!-- Filtro (recarrega a lista) -->
+<form method="GET" action="{{ url_for('qrcodes.gerar') }}" class="row g-2 mb-2">
+    <div class="col-12 col-md-5">
+        <input type="text" name="busca" value="{{ busca }}" class="form-control" placeholder="🔍 Buscar por nome">
     </div>
+    <div class="col-12 col-md-4">
+        <select name="tipo" class="form-select">
+            <option value="" {{ 'selected' if tipo == '' }}>Todos</option>
+            <option value="nr" {{ 'selected' if tipo == 'nr' }}>Com treinamento de NR</option>
+            <option value="pt" {{ 'selected' if tipo == 'pt' }}>Com treinamento de PT/LOTO</option>
+        </select>
+    </div>
+    <div class="col-12 col-md-3 d-flex gap-2">
+        <button type="submit" class="btn btn-dark flex-fill">Filtrar</button>
+        <a href="{{ url_for('qrcodes.gerar') }}" class="btn btn-outline-secondary" title="Limpar filtros">✕</a>
+    </div>
+</form>
 
+<div class="d-flex gap-2 mb-3 flex-wrap">
+    <a class="btn btn-outline-dark btn-sm"
+       href="{{ url_for('qrcodes.gerar', busca=busca, tipo=tipo, marcar=1) }}">☑ Marcar todos da lista ({{ pessoas|length }})</a>
+    <a class="btn btn-outline-secondary btn-sm"
+       href="{{ url_for('qrcodes.gerar', busca=busca, tipo=tipo) }}">☐ Desmarcar todos</a>
+</div>
+
+<!-- Seleção e geração do PDF -->
+<form method="POST" action="{{ url_for('qrcodes.gerar') }}">
     <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-        <span class="small text-muted"><strong id="contador">0</strong> selecionado(s) · máximo de {{ limite }} por PDF</span>
-        <button type="submit" class="btn btn-success" id="btnGerar" disabled>⬇ Gerar PDF</button>
+        <span class="small text-muted"><strong id="contador">{{ pessoas|length if marcar else 0 }}</strong> selecionado(s) · máximo de {{ limite }} por PDF</span>
+        <button type="submit" class="btn btn-success">⬇ Gerar PDF</button>
     </div>
 
     <div class="table-responsive" style="max-height:60vh; overflow:auto;">
     <table class="table table-sm table-hover align-middle">
-        <thead class="table-dark" style="position:sticky; top:0;">
+        <thead class="table-dark">
             <tr><th style="width:40px;"></th><th>Nome</th><th>Treinamentos</th></tr>
         </thead>
         <tbody>
         {% for p in pessoas %}
-            <tr class="pessoa"
-                data-nome="{{ p.nome }}"
-                data-tipos="{{ 'nr' if p.n_nr else '' }} {{ 'pt' if p.tem_pt else '' }}">
-                <td><input type="checkbox" class="form-check-input marca" name="pessoas" value="{{ p.chave }}"></td>
-                <td>{{ p.nome }}</td>
+            <tr>
+                <td>
+                    <input type="checkbox" class="form-check-input" name="pessoas"
+                           value="{{ p.chave }}" id="p_{{ p.chave }}" {{ 'checked' if marcar }}>
+                </td>
+                <td><label for="p_{{ p.chave }}" style="cursor:pointer; display:block;">{{ p.nome }}</label></td>
                 <td>
                     {% if p.n_nr %}<span class="badge bg-primary">NR · {{ p.n_nr }} curso(s)</span>{% endif %}
                     {% if p.tem_pt %}<span class="badge bg-warning text-dark">PT/LOTO</span>{% endif %}
@@ -54,7 +64,7 @@
                 </td>
             </tr>
         {% else %}
-            <tr><td colspan="3" class="text-center text-muted">Nenhuma pessoa cadastrada.</td></tr>
+            <tr><td colspan="3" class="text-center text-muted">Nenhuma pessoa encontrada.</td></tr>
         {% endfor %}
         </tbody>
     </table>
@@ -62,50 +72,11 @@
 </form>
 
 <script>
-(function () {
-    const linhas = Array.from(document.querySelectorAll('tr.pessoa'));
-    const busca = document.getElementById('busca');
-    const tipo = document.getElementById('tipo');
-    const contador = document.getElementById('contador');
-    const btnGerar = document.getElementById('btnGerar');
-
-    const norm = s => s.normalize('NFD').replace(/
-$$
-\u0300-\u036f
-$$
-/g, '').toLowerCase();
-
-    function visivel(l) { return l.style.display !== 'none'; }
-
-    function contar() {
-        const n = document.querySelectorAll('.marca:checked').length;
-        contador.textContent = n;
-        btnGerar.disabled = n === 0;
-    }
-
-    function filtrar() {
-        const termos = norm(busca.value).split(/\s+/).filter(Boolean);
-        const t = tipo.value;
-        linhas.forEach(l => {
-            const nome = norm(l.dataset.nome);
-            const okNome = termos.every(x => nome.includes(x));
-            const okTipo = !t || l.dataset.tipos.split(' ').includes(t);
-            l.style.display = (okNome && okTipo) ? '' : 'none';
-        });
-    }
-
-    busca.addEventListener('input', filtrar);
-    tipo.addEventListener('change', filtrar);
-    document.getElementById('marcarVisiveis').addEventListener('click', () => {
-        linhas.filter(visivel).forEach(l => l.querySelector('.marca').checked = true);
-        contar();
-    });
-    document.getElementById('desmarcar').addEventListener('click', () => {
-        linhas.forEach(l => l.querySelector('.marca').checked = false);
-        contar();
-    });
-    linhas.forEach(l => l.querySelector('.marca').addEventListener('change', contar));
-    contar();
-})();
+// Apenas o contador. Se este script falhar, o restante da tela continua funcionando.
+document.addEventListener('change', function () {
+    var n = document.querySelectorAll('input[name="pessoas"]:checked').length;
+    var c = document.getElementById('contador');
+    if (c) c.textContent = n;
+});
 </script>
 {% endblock %}
