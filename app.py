@@ -62,10 +62,14 @@ def injetar_modulos():
 
 @app.before_request
 def alerta_vencimento():
-    if request.endpoint == "static":
+    if request.endpoint in ("static", "catalogo_nr.atualizar_estrutura"):
         return
     if current_user.is_authenticated:
-        session["alertas_nr"] = listar_cursos_criticos(ColaboradorCurso)
+        try:
+            session["alertas_nr"] = listar_cursos_criticos(ColaboradorCurso)
+        except Exception:
+            db.session.rollback()
+            session["alertas_nr"] = []
 
 
 @app.route("/")
