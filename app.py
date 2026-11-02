@@ -1,13 +1,11 @@
 import os
 from flask import Flask, render_template, session, request
 from flask_login import LoginManager, login_required, current_user
-from services.validade_service import listar_cursos_criticos
 from models import db, Usuario, ColaboradorCurso, Colaborador, TreinamentoPTLoto
+from services.validade_service import listar_cursos_criticos
 from services.pt_loto_service import buscar_pt_colaborador, ultimo_pt_da_pessoa
-
 from modulos import MODULOS
-from routes.qrcodes import bp_qrcodes
-app.register_blueprint(bp_qrcodes)
+
 app = Flask(__name__)
 
 # --- Configuração do Banco de Dados ---
@@ -22,7 +20,7 @@ if database_url.startswith("postgresql://") and "+psycopg" not in database_url:
 app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_pre_ping": True}
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "troque-esta-chave-em-producao")
-app.config["MAX_CONTENT_LENGTH"] = 12 * 1024 * 1024 # aceita fotos de celular (ate 12 MB)
+app.config["MAX_CONTENT_LENGTH"] = 12 * 1024 * 1024   # aceita fotos de celular (ate 12 MB)
 
 db.init_app(app)
 
@@ -36,7 +34,7 @@ def load_user(user_id):
     return db.session.get(Usuario, int(user_id))
 
 
-# --- Blueprints ---
+# --- Blueprints (sempre DEPOIS de criar o app) ---
 from routes.auth import bp_auth
 from routes.colaboradores import bp_colaboradores
 from routes.usuarios import bp_usuarios
@@ -44,6 +42,7 @@ from routes.catalogo_nr import bp_catalogo
 from routes.cursos import bp_cursos
 from routes.nrs import bp_nrs
 from routes.pt_loto import bp_pt_loto
+from routes.qrcodes import bp_qrcodes
 
 app.register_blueprint(bp_auth)
 app.register_blueprint(bp_colaboradores)
@@ -52,6 +51,7 @@ app.register_blueprint(bp_catalogo)
 app.register_blueprint(bp_cursos)
 app.register_blueprint(bp_nrs)
 app.register_blueprint(bp_pt_loto)
+app.register_blueprint(bp_qrcodes)
 
 
 @app.context_processor
@@ -122,7 +122,9 @@ def verificar_pt(id):
         cursos_info=[],
         pt_info=_pt_info(ultimo_pt_da_pessoa(base)),
         mostrar_nr=False,
-    )    
+    )
+
+
 @app.errorhandler(413)
 def arquivo_muito_grande(e):
     return "Arquivo muito grande (máximo 12 MB). Volte e envie um arquivo menor.", 413
