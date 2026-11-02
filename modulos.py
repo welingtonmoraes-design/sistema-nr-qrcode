@@ -5,7 +5,15 @@ em routes/ e registre-o no app.py.
 """
 
 MODULOS = [
-           "submenu": [
+    {
+        "id": "nrs",
+        "nome": "Controle NRs",
+        "descricao": "Colaboradores, cursos de NRs, validades, alertas e QR Codes.",
+        "icone": "🎓",
+        "endpoint": "nrs.painel",
+        "blueprints": ["nrs", "colaboradores", "catalogo_nr", "cursos"],
+        "ativo": True,
+        "submenu": [
             {"nome": "Treinamentos", "endpoint": "nrs.painel"},
             {"nome": "Novo lançamento", "endpoint": "cursos.novo"},
             {"nome": "Colaboradores", "endpoint": "colaboradores.listar"},
@@ -13,7 +21,7 @@ MODULOS = [
             {"nome": "Gerar QR Codes", "endpoint": "cursos.gerar_qrcodes"},
         ],
     },
-        {
+    {
         "id": "pt_loto",
         "nome": "Validade PT e LOTO",
         "descricao": "Controle de validade dos treinamentos de PT e LOTO (12 meses).",
@@ -27,7 +35,6 @@ MODULOS = [
             {"nome": "Importar Excel", "endpoint": "pt_loto.importar"},
         ],
     },
-    # --- Exemplos de modulos futuros (nomes ilustrativos, ajuste como quiser) ---
     {
         "id": "inspecoes",
         "nome": "Inspeções e Auditorias",
