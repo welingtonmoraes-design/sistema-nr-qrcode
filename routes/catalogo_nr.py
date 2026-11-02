@@ -127,9 +127,9 @@ def importar():
 @login_required
 def atualizar_estrutura():
     """
-    Ajusta a tabela catalogo_nr SEM apagar dados:
-    - cria a coluna carga_horaria (se nao existir)
-    - amplia 'descricao' para TEXT (PostgreSQL)
+    Ajusta o banco SEM apagar dados:
+    - catalogo_nr: coluna carga_horaria e descricao como TEXT
+    - colaborador_curso: colunas do certificado (nome, tipo e arquivo)
     Somente admin. Pode ser executada mais de uma vez.
     """
     if current_user.perfil != "admin":
@@ -137,13 +137,26 @@ def atualizar_estrutura():
         return redirect(url_for("catalogo_nr.listar"))
 
     try:
-        colunas = {c["name"] for c in inspect(db.engine).get_columns("catalogo_nr")}
+        insp = inspect(db.engine)
+        col_cat = {c["name"] for c in insp.get_columns("catalogo_nr")}
+        col_cc = {c["name"] for c in insp.get_columns("colaborador_curso")}
+        postgres = db.engine.dialect.name == "postgresql"
+        tipo_blob = "BYTEA" if postgres else "BLOB"
+
         with db.engine.begin() as conn:
-            if "carga_horaria" not in colunas:
+            if "carga_horaria" not in col_cat:
                 conn.execute(text("ALTER TABLE catalogo_nr ADD COLUMN carga_horaria VARCHAR(50)"))
-            if db.engine.dialect.name == "postgresql":
+            if postgres:
                 conn.execute(text("ALTER TABLE catalogo_nr ALTER COLUMN descricao TYPE TEXT"))
-        flash("Estrutura do catálogo atualizada com sucesso.", "success")
+
+            if "certificado_nome" not in col_cc:
+                conn.execute(text("ALTER TABLE colaborador_curso ADD COLUMN certificado_nome VARCHAR(255)"))
+            if "certificado_tipo" not in col_cc:
+                conn.execute(text("ALTER TABLE colaborador_curso ADD COLUMN certificado_tipo VARCHAR(100)"))
+            if "certificado_dados" not in col_cc:
+                conn.execute(text(f"ALTER TABLE colaborador_curso ADD COLUMN certificado_dados {tipo_blob}"))
+
+        flash("Estrutura do banco atualizada com sucesso.", "success")
     except Exception as e:
         flash(f"Erro ao atualizar a estrutura: {e}", "danger")
 
