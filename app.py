@@ -1,12 +1,13 @@
 import os
 from flask import Flask, render_template, session, request
 from flask_login import LoginManager, login_required, current_user
-from models import db, Usuario, ColaboradorCurso, Colaborador
 from services.validade_service import listar_cursos_criticos
-from services.pt_loto_service import buscar_pt_colaborador
+from models import db, Usuario, ColaboradorCurso, Colaborador, TreinamentoPTLoto
+from services.pt_loto_service import buscar_pt_colaborador, ultimo_pt_da_pessoa
 
 from modulos import MODULOS
-
+from routes.qrcodes import bp_qrcodes
+app.register_blueprint(bp_qrcodes)
 app = Flask(__name__)
 
 # --- Configuração do Banco de Dados ---
@@ -81,6 +82,14 @@ def home():
     return render_template("home.html", alertas=alertas)
 
 
+def _pt_info(pt):
+    """Dados do PT para a pagina publica (ou None se nao houver registro)."""
+    if not pt:
+        return None
+    codigo, texto, dias = pt.condicao()
+    return {"registro": pt, "codigo": codigo, "texto": texto, "dias": dias}
+
+
 @app.route("/verificar/<cpf>")
 def verificar_colaborador(cpf):
     """
@@ -94,24 +103,26 @@ def verificar_colaborador(cpf):
         status, dias = c.status()
         cursos_info.append({"curso": c, "status": status, "dias_restantes": dias})
 
-    pt_info = None
-    pt = buscar_pt_colaborador(colaborador)
-    if pt:
-        codigo, texto, dias = pt.condicao()
-        pt_info = {
-            "registro": pt,
-            "codigo": codigo,      # VALIDO | REAVALIAR | VENCIDO
-            "texto": texto,
-            "dias": dias,
-        }
-
     return render_template(
         "verificacao_publica.html",
-        colaborador=colaborador,
+        nome=colaborador.nome,
         cursos_info=cursos_info,
-        pt_info=pt_info
+        pt_info=_pt_info(buscar_pt_colaborador(colaborador)),
+        mostrar_nr=True,
     )
-    
+
+
+@app.route("/verificar-pt/<int:id>")
+def verificar_pt(id):
+    """Pagina publica para pessoas que possuem apenas treinamento de PT/LOTO."""
+    base = db.get_or_404(TreinamentoPTLoto, id)
+    return render_template(
+        "verificacao_publica.html",
+        nome=base.nome,
+        cursos_info=[],
+        pt_info=_pt_info(ultimo_pt_da_pessoa(base)),
+        mostrar_nr=False,
+    )    
 @app.errorhandler(413)
 def arquivo_muito_grande(e):
     return "Arquivo muito grande (máximo 12 MB). Volte e envie um arquivo menor.", 413
