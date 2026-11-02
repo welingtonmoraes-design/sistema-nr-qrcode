@@ -206,3 +206,20 @@ def buscar_pt_colaborador(colaborador):
     if not candidatos:
         return None
     return max(candidatos, key=lambda r: r.data_treinamento)
+
+def ultimo_pt_da_pessoa(registro):
+    """
+    A partir de um registro de PT, devolve o treinamento mais recente da mesma pessoa
+    (mesma matricula; se nao houver, mesmo nome).
+    """
+    matricula = (registro.matricula or "").strip().upper()
+    nome = _norm(registro.nome)
+    todos = TreinamentoPTLoto.query.all()
+
+    candidatos = []
+    if matricula:
+        candidatos = [r for r in todos if (r.matricula or "").strip().upper() == matricula]
+    if not candidatos:
+        candidatos = [r for r in todos if _norm(r.nome) == nome]
+
+    return max(candidatos, key=lambda r: r.data_treinamento) if candidatos else registro
