@@ -15,6 +15,7 @@
             <th>Nome</th>
             <th>CPF</th>
             <th>Matrícula</th>
+            <th>Empresa</th>
             <th>Ativo</th>
             <th>Ações</th>
         </tr>
@@ -25,6 +26,7 @@
             <td><a href="{{ url_for('colaboradores.detalhes', id=c.id) }}">{{ c.nome }}</a></td>
             <td>{{ c.cpf }}</td>
             <td>{{ c.matricula }}</td>
+            <td>{{ c.empresa or '' }}</td>
             <td>{{ "Sim" if c.ativo else "Não" }}</td>
             <td>
                 <a href="{{ url_for('colaboradores.editar', id=c.id) }}" class="btn btn-sm btn-warning">Editar</a>
