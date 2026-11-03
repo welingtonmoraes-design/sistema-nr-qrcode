@@ -24,6 +24,7 @@ class Colaborador(db.Model):
     nome = db.Column(db.String(150), nullable=False)
     cpf = db.Column(db.String(14), unique=True, nullable=False)
     matricula = db.Column(db.String(20))
+    empresa = db.Column(db.String(150))
     ativo = db.Column(db.Boolean, default=True)
 
     cursos = db.relationship(
