@@ -181,31 +181,33 @@ def gravar_linhas(linhas, substituir=False):
     db.session.commit()
     return inseridos, duplicados
 
+def _candidatos_pt(matricula, nome):
+    """
+    Registros de PT de uma pessoa. Usa a matricula somente se ela pertencer a
+    uma unica pessoa no PT/LOTO; caso contrario, usa o nome completo.
+    """
+    todos = TreinamentoPTLoto.query.all()
+    m = (matricula or "").strip().upper()
+
+    if m:
+        por_matricula = [r for r in todos if (r.matricula or "").strip().upper() == m]
+        if por_matricula and len({_norm(r.nome) for r in por_matricula}) == 1:
+            return por_matricula
+
+    n = _norm(nome)
+    return [r for r in todos if _norm(r.nome) == n]
+
+
 def buscar_pt_colaborador(colaborador):
-    """
-    Procura o treinamento de PT/LOTO do colaborador.
-    1) pela matricula/SSO (igual); 2) se nao achar, pelo nome completo.
-    Se houver varios registros, retorna o de data de treinamento mais recente.
-    """
-    candidatos = []
+    """PT mais recente do colaborador (por matricula unica ou por nome)."""
+    candidatos = _candidatos_pt(colaborador.matricula, colaborador.nome)
+    return max(candidatos, key=lambda r: r.data_treinamento) if candidatos else None
 
-    matricula = (colaborador.matricula or "").strip().upper()
-    if matricula:
-        candidatos = [
-            r for r in TreinamentoPTLoto.query.all()
-            if (r.matricula or "").strip().upper() == matricula
-        ]
 
-    if not candidatos:
-        nome = _norm(colaborador.nome)
-        candidatos = [
-            r for r in TreinamentoPTLoto.query.all()
-            if _norm(r.nome) == nome
-        ]
-
-    if not candidatos:
-        return None
-    return max(candidatos, key=lambda r: r.data_treinamento)
+def ultimo_pt_da_pessoa(registro):
+    """A partir de um registro de PT, devolve o mais recente da mesma pessoa."""
+    candidatos = _candidatos_pt(registro.matricula, registro.nome)
+    return max(candidatos, key=lambda r: r.data_treinamento) if candidatos else registro
 
 def ultimo_pt_da_pessoa(registro):
     """
