@@ -128,8 +128,9 @@ def importar():
 def atualizar_estrutura():
     """
     Ajusta o banco SEM apagar dados:
-    - catalogo_nr: coluna carga_horaria e descricao como TEXT
-    - colaborador_curso: colunas do certificado (nome, tipo e arquivo)
+    - catalogo_nr: carga_horaria e descricao como TEXT
+    - colaborador_curso: colunas do certificado
+    - colaboradores: coluna empresa
     Somente admin. Pode ser executada mais de uma vez.
     """
     if current_user.perfil != "admin":
@@ -140,6 +141,7 @@ def atualizar_estrutura():
         insp = inspect(db.engine)
         col_cat = {c["name"] for c in insp.get_columns("catalogo_nr")}
         col_cc = {c["name"] for c in insp.get_columns("colaborador_curso")}
+        col_colab = {c["name"] for c in insp.get_columns("colaboradores")}
         postgres = db.engine.dialect.name == "postgresql"
         tipo_blob = "BYTEA" if postgres else "BLOB"
 
@@ -155,6 +157,9 @@ def atualizar_estrutura():
                 conn.execute(text("ALTER TABLE colaborador_curso ADD COLUMN certificado_tipo VARCHAR(100)"))
             if "certificado_dados" not in col_cc:
                 conn.execute(text(f"ALTER TABLE colaborador_curso ADD COLUMN certificado_dados {tipo_blob}"))
+
+            if "empresa" not in col_colab:
+                conn.execute(text("ALTER TABLE colaboradores ADD COLUMN empresa VARCHAR(150)"))
 
         flash("Estrutura do banco atualizada com sucesso.", "success")
     except Exception as e:
