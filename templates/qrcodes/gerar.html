@@ -29,6 +29,10 @@
         <a href="{{ url_for('qrcodes.gerar') }}" class="btn btn-outline-secondary" title="Limpar filtros">✕</a>
     </div>
 </form>
+<div class="small text-muted mb-2">
+    Exibindo <strong>{{ pessoas|length }}</strong> de <strong>{{ total_geral }}</strong> pessoa(s)
+    · {{ total_nr }} com NR · {{ total_pt }} com PT/LOTO · {{ total_inativos }} inativo(s)
+</div>
 
 <div class="d-flex gap-2 mb-3 flex-wrap">
     <a class="btn btn-outline-dark btn-sm"
@@ -56,7 +60,12 @@
                     <input type="checkbox" class="form-check-input" name="pessoas"
                            value="{{ p.chave }}" id="p_{{ p.chave }}" {{ 'checked' if marcar }}>
                 </td>
-                <td><label for="p_{{ p.chave }}" style="cursor:pointer; display:block;">{{ p.nome }}</label></td>
+                <td>
+                    <label for="p_{{ p.chave }}" style="cursor:pointer; display:block;">
+                        {{ p.nome }}
+                        {% if p.inativo %}<span class="badge bg-dark">Inativo</span>{% endif %}
+                    </label>
+                </td>
                 <td>
                     {% if p.n_nr %}<span class="badge bg-primary">NR · {{ p.n_nr }} curso(s)</span>{% endif %}
                     {% if p.tem_pt %}<span class="badge bg-warning text-dark">PT/LOTO</span>{% endif %}
