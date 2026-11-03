@@ -30,6 +30,7 @@ def novo():
 
         colaborador = Colaborador(
             nome=form.nome.data,
+            empresa=form.empresa.data,
             cpf=form.cpf.data,
             matricula=form.matricula.data,
             ativo=form.ativo.data
@@ -48,6 +49,7 @@ def editar(id):
     form = ColaboradorForm(obj=colaborador)
     if form.validate_on_submit():
         colaborador.nome = form.nome.data
+        colaborador.empresa = form.empresa.data
         colaborador.cpf = form.cpf.data
         colaborador.matricula = form.matricula.data
         colaborador.ativo = form.ativo.data
