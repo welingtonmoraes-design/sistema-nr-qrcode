@@ -12,6 +12,10 @@
     <div class="mb-3">
         {{ form.matricula.label }} {{ form.matricula(class="form-control") }}
     </div>
+    <div class="mb-3">
+        {{ form.empresa.label }} {{ form.empresa(class="form-control") }}
+        {% for erro in form.empresa.errors %}<div class="text-danger small">{{ erro }}</div>{% endfor %}
+    </div>
     <div class="form-check mb-3">
         {{ form.ativo(class="form-check-input") }} {{ form.ativo.label }}
     </div>
