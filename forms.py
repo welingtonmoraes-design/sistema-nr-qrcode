@@ -94,3 +94,10 @@ class RevalidarForm(FlaskForm):
         "Nova data do treinamento", format="%Y-%m-%d", validators=[DataRequired()]
     )
     instrutor = StringField("Instrutor", validators=[Optional(), Length(max=150)])
+
+class ColaboradorForm(FlaskForm):
+    nome = StringField("Nome", validators=[DataRequired(), Length(max=150)])
+    cpf = StringField("CPF", validators=[DataRequired(), Length(min=11, max=14)])
+    matricula = StringField("Matrícula", validators=[Optional()])
+    empresa = StringField("Empresa", validators=[Optional(), Length(max=150)])
+    ativo = BooleanField("Ativo", default=True)
