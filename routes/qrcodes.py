@@ -38,11 +38,12 @@ def gerar():
     tipo = request.args.get("tipo", "").strip()
     marcar = request.args.get("marcar", "") == "1"
 
+    todas = listar_pessoas_qr()
     termos = _norm(busca).split()
+
     pessoas = []
-    for p in listar_pessoas_qr():
-        nome = _norm(p["nome"])
-        if termos and not all(t in nome for t in termos):
+    for p in todas:
+        if termos and not all(t in _norm(p["nome"]) for t in termos):
             continue
         if tipo == "nr" and not p["n_nr"]:
             continue
@@ -53,6 +54,10 @@ def gerar():
     return render_template(
         "qrcodes/gerar.html",
         pessoas=pessoas, busca=busca, tipo=tipo, marcar=marcar,
+        total_geral=len(todas),
+        total_nr=sum(1 for p in todas if p["n_nr"]),
+        total_pt=sum(1 for p in todas if p["tem_pt"]),
+        total_inativos=sum(1 for p in todas if p["inativo"]),
         base_url=BASE_URL,
         url_local=("127.0.0.1" in BASE_URL or "localhost" in BASE_URL),
         limite=MAX_POR_PDF,
