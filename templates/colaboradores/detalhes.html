@@ -1,7 +1,11 @@
 {% extends "base.html" %}
 {% block content %}
 <h2>{{ colaborador.nome }}</h2>
-<p><strong>CPF:</strong> {{ colaborador.cpf }} | <strong>Matrícula:</strong> {{ colaborador.matricula }}</p>
+<p>
+    <strong>CPF:</strong> {{ colaborador.cpf }} |
+    <strong>Matrícula:</strong> {{ colaborador.matricula or '-' }} |
+    <strong>Empresa:</strong> {{ colaborador.empresa or '-' }}
+</p>
 
 <h4 class="mt-4">Cursos NR</h4>
 <table class="table table-striped">
