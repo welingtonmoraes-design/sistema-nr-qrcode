@@ -29,6 +29,7 @@
         <a href="{{ url_for('qrcodes.gerar') }}" class="btn btn-outline-secondary" title="Limpar filtros">✕</a>
     </div>
 </form>
+
 <div class="small text-muted mb-2">
     Exibindo <strong>{{ pessoas|length }}</strong> de <strong>{{ total_geral }}</strong> pessoa(s)
     · {{ total_nr }} com NR · {{ total_pt }} com PT/LOTO · {{ total_inativos }} inativo(s)
@@ -41,17 +42,44 @@
        href="{{ url_for('qrcodes.gerar', busca=busca, tipo=tipo) }}">☐ Desmarcar todos</a>
 </div>
 
-<!-- Seleção e geração do PDF -->
+<!-- Seleção, tamanho e geração do PDF -->
 <form method="POST" action="{{ url_for('qrcodes.gerar') }}">
+
+    <div class="card card-body bg-light mb-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-12 col-md-5">
+                <label for="tamanho" class="form-label mb-1"><strong>Tamanho do QR Code na impressão</strong></label>
+                <select name="tamanho" id="tamanho" class="form-select">
+                    {% for t in tamanhos %}
+                        <option value="{{ t.label }}" {{ 'selected' if t.cm == tamanho_padrao }}>
+                            {{ t.label }} cm · {{ t.por_pagina }} por folha A4
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12 col-md-7 small text-muted">
+                Imprima o PDF em <strong>tamanho real (100%)</strong>. Não use "ajustar à página",
+                senão o tamanho muda. O tamanho inclui a margem branca do QR.
+            </div>
+        </div>
+    </div>
+
     <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-        <span class="small text-muted"><strong id="contador">{{ pessoas|length if marcar else 0 }}</strong> selecionado(s) · máximo de {{ limite }} por PDF</span>
+        <span class="small text-muted">
+            <strong id="contador">{{ pessoas|length if marcar else 0 }}</strong> selecionado(s)
+            · máximo de {{ limite }} por PDF
+        </span>
         <button type="submit" class="btn btn-success">⬇ Gerar PDF</button>
     </div>
 
     <div class="table-responsive" style="max-height:60vh; overflow:auto;">
     <table class="table table-sm table-hover align-middle">
         <thead class="table-dark">
-            <tr><th style="width:40px;"></th><th>Nome</th><th>Treinamentos</th></tr>
+            <tr>
+                <th style="width:40px;"></th>
+                <th>Nome</th>
+                <th>Treinamentos</th>
+            </tr>
         </thead>
         <tbody>
         {% for p in pessoas %}
