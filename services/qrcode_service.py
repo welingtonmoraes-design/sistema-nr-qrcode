@@ -25,6 +25,10 @@ MAX_PAGINAS = 20
 TAMANHOS_CM = [2, 2.5, 3, 3.5, 4, 5, 6, 7, 8, 10]
 TAMANHO_PADRAO_CM = 4
 
+# Limites da fonte do nome (em pixels, a 200 DPI)
+FONTE_MIN_PX = 10
+FONTE_MAX_PX = 44
+
 FONTES = [
     "arial.ttf",
     "DejaVuSans-Bold.ttf",
@@ -32,17 +36,30 @@ FONTES = [
     "LiberationSans-Bold.ttf",
 ]
 
+_cache_fontes = {}
 
-def _carregar_fonte(tamanho=32):
+
+def _fonte(tamanho):
+    """Carrega a fonte no tamanho pedido (com cache)."""
+    tamanho = int(tamanho)
+    if tamanho in _cache_fontes:
+        return _cache_fontes[tamanho]
+
+    fonte = None
     for caminho in FONTES:
         try:
-            return ImageFont.truetype(caminho, tamanho)
+            fonte = ImageFont.truetype(caminho, tamanho)
+            break
         except Exception:
             continue
-    try:
-        return ImageFont.load_default(size=tamanho)
-    except TypeError:
-        return ImageFont.load_default()
+    if fonte is None:
+        try:
+            fonte = ImageFont.load_default(size=tamanho)
+        except TypeError:
+            fonte = ImageFont.load_default()
+
+    _cache_fontes[tamanho] = fonte
+    return fonte
 
 
 def gerar_qrcode_imagem(conteudo):
@@ -69,8 +86,11 @@ def gerar_qrcode_colaborador(colaborador):
 def _layout(tamanho_cm):
     """Calcula tamanhos em pixels e quantas colunas/linhas cabem na folha A4."""
     qr_px = int(round(tamanho_cm * 10 * MM))
-    fonte_px = max(20, min(44, int(qr_px * 0.11)))
-    linha_px = int(fonte_px * 1.25)
+
+    # Fonte maxima proporcional ao QR (o ajuste automatico reduz se o nome for longo)
+    fonte_max = max(12, min(FONTE_MAX_PX, int(qr_px * 0.11)))
+    linha_px = int(fonte_max * 1.25)
+
     gap_x = int(5 * MM)
     gap_y = int(4 * MM)
     texto_h = 2 * linha_px + int(2 * MM)
@@ -84,7 +104,7 @@ def _layout(tamanho_cm):
     colunas = max(1, (util_w + gap_x) // cel_w)
     linhas = max(1, (util_h + gap_y) // cel_h)
     return {
-        "qr_px": qr_px, "fonte_px": fonte_px, "linha_px": linha_px,
+        "qr_px": qr_px, "fonte_max": fonte_max,
         "gap_x": gap_x, "cel_w": cel_w, "cel_h": cel_h, "margem": margem,
         "colunas": colunas, "linhas": linhas,
     }
@@ -100,7 +120,12 @@ def paginas_necessarias(qtd, tamanho_cm):
     return math.ceil(qtd / capacidade_por_pagina(tamanho_cm)) if qtd else 0
 
 
-def _quebrar_texto(draw, texto, fonte, largura_max, max_linhas=2):
+def _quebrar_texto(draw, texto, fonte, largura_max, max_linhas=2, truncar=True):
+    """
+    Quebra o texto em linhas que cabem na largura.
+    Se nao couber em 'max_linhas' e truncar=False, retorna None.
+    Se truncar=True, corta o excesso e termina com '...'.
+    """
     palavras = texto.split()
     linhas, atual = [], ""
     for p in palavras:
@@ -113,29 +138,59 @@ def _quebrar_texto(draw, texto, fonte, largura_max, max_linhas=2):
     if atual:
         linhas.append(atual)
 
-    if len(linhas) > max_linhas:
-        linhas = linhas[:max_linhas]
-        ultima = linhas[-1]
-        while ultima and draw.textlength(ultima + "...", font=fonte) > largura_max:
-            ultima = ultima[:-1]
-        linhas[-1] = ultima + "..."
+    cabe = (
+        len(linhas) <= max_linhas
+        and all(draw.textlength(l, font=fonte) <= largura_max for l in linhas)
+    )
+    if cabe:
+        return linhas
+    if not truncar:
+        return None
+
+    houve_corte = len(linhas) > max_linhas
+    linhas = linhas[:max_linhas]
+    for i, linha in enumerate(linhas):
+        eh_ultima = (i == len(linhas) - 1)
+        sufixo = "..." if (eh_ultima and houve_corte) else ""
+        while linha and draw.textlength(linha + sufixo, font=fonte) > largura_max:
+            linha = linha[:-1]
+            sufixo = "..."
+        linhas[i] = linha.rstrip() + sufixo
     return linhas
+
+
+def _ajustar_nome(draw, nome, largura_max, fonte_max, max_linhas=2):
+    """
+    Escolhe a MAIOR fonte (entre fonte_max e FONTE_MIN_PX) em que o nome cabe
+    em ate 'max_linhas' linhas dentro da largura. Retorna (fonte, linhas, tamanho).
+    Se nem a fonte minima servir, corta com '...'.
+    """
+    for tam in range(int(fonte_max), FONTE_MIN_PX - 1, -1):
+        fonte = _fonte(tam)
+        linhas = _quebrar_texto(draw, nome, fonte, largura_max, max_linhas, truncar=False)
+        if linhas is not None:
+            return fonte, linhas, tam
+
+    fonte = _fonte(FONTE_MIN_PX)
+    linhas = _quebrar_texto(draw, nome, fonte, largura_max, max_linhas, truncar=True)
+    return fonte, linhas, FONTE_MIN_PX
 
 
 def montar_folha_a4(itens, tamanho_cm=TAMANHO_PADRAO_CM):
     """
     Monta paginas A4 com QR Codes do tamanho pedido (em cm).
     Cada item e um dict: {"nome": "...", "url": "https://..."}.
+    O nome e centralizado abaixo do QR, com a fonte ajustada para caber.
     As paginas sao em tons de cinza para economizar memoria.
     """
     lay = _layout(tamanho_cm)
     qr_px = lay["qr_px"]
     colunas, linhas = lay["colunas"], lay["linhas"]
     por_pagina = colunas * linhas
+    largura_texto = int(qr_px * 0.96)     # pequena folga nas laterais
 
     grade_w = colunas * qr_px + (colunas - 1) * lay["gap_x"]
     x_inicio = (A4_LARGURA - grade_w) // 2
-    fonte = _carregar_fonte(lay["fonte_px"])
 
     paginas = []
     folha = Image.new("L", (A4_LARGURA, A4_ALTURA), 255)
@@ -157,11 +212,16 @@ def montar_folha_a4(itens, tamanho_cm=TAMANHO_PADRAO_CM):
         metodo = Image.NEAREST if qr_px >= qr_img.width else Image.LANCZOS
         folha.paste(qr_img.resize((qr_px, qr_px), metodo), (x0, y0))
 
+        # Nome: fonte ajustada automaticamente ao espaco disponivel
+        fonte, linhas_texto, tam = _ajustar_nome(
+            draw, item["nome"], largura_texto, lay["fonte_max"]
+        )
+        altura_linha = int(tam * 1.2)
         y_texto = y0 + qr_px + 6
-        for texto in _quebrar_texto(draw, item["nome"], fonte, qr_px):
+        for texto in linhas_texto:
             largura = draw.textlength(texto, font=fonte)
             draw.text((x0 + (qr_px - largura) / 2, y_texto), texto, fill=0, font=fonte)
-            y_texto += lay["linha_px"]
+            y_texto += altura_linha
 
     paginas.append(folha)
     return paginas
